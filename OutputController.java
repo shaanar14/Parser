@@ -149,9 +149,12 @@ public class OutputController
 
 
 
-    //public void outputSyntaxTree(SyntaxTree st)
+    /*public void outputSyntaxTree(SyntaxTree st)
+    {
+        System.out.println(st.preorder());
+    }
     //reconsider function name
-    //st.preOrderTraversal()
+    //st.preOrderTraversal()*/
 
 
 

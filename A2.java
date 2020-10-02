@@ -12,9 +12,9 @@ public class A2
     public final static SymbolTable st = new SymbolTable();
     public static void main(String[] args)
     {
-        assert(args.length != 1) : "File name required";
-        String fileName = args[0];
-        LexicalScanner lexical = new LexicalScanner();
+        //assert(args.length != 1) : "File name required";
+        //String fileName = args[0];
+        /*LexicalScanner lexical = new LexicalScanner();
         OutputController oc = new OutputController();
         //Read the file with the file name that was given in the program arguments
         lexical.readFile(fileName);
@@ -27,7 +27,7 @@ public class A2
         //Generate a listing file which is a copy of the input file except that each line will start with its its line number
         //  and all errors found will be written at the end of the file with their respective line numbers
         oc.generateListingFile("listing.txt");
-        System.out.println("\n" + st.size());
+        System.out.println("\n" + st.size());*/
         System.exit(0);
     }
 }
