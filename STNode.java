@@ -21,8 +21,8 @@ public class STNode
     //The nodes right most child
     private STNode rightChild;
     //The node value from the grammar
-    //TODO consider using an enum
-    private String nodeValue;
+    //TODO consider going back to a String so we don't have 60 enums
+    private NodeValue nodeValue;
 
     public STNode()
     {
@@ -30,7 +30,16 @@ public class STNode
         this.leftChild = new STNode();
         this.middleChild = new STNode();
         this.rightChild = new STNode();
-        this.nodeValue = "";
+        this.nodeValue = NodeValue.N0;
+    }
+
+    public STNode(NodeValue nv)
+    {
+        this.nodeValue = nv;
+        this.record = new SymbolEntry();
+        this.leftChild = new STNode();
+        this.middleChild = new STNode();
+        this.rightChild = new STNode();
     }
 
     public void setRecord(SymbolEntry r) {this.record = r;}
@@ -41,7 +50,7 @@ public class STNode
 
     public void setRightChild(STNode rc){this.rightChild = rc;}
 
-    public void setNodeValue(String nv) {this.nodeValue = nv;}
+    public void setNodeValue(NodeValue nv) {this.nodeValue = nv;}
 
     public SymbolEntry getRecord() {return this.record;}
 
@@ -51,12 +60,12 @@ public class STNode
 
     public STNode getRightChild() {return this.rightChild;}
 
-    public String getNodeValue() {return this.nodeValue;}
+    public NodeValue getNodeValue() {return this.nodeValue;}
 
     @Override
     //TODO rework to suit assignment specs
     public String toString()
     {
-        return this.getNodeValue();
+        return this.getNodeValue().getNodeValue();
     }
 }
