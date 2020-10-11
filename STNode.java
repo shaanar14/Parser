@@ -26,7 +26,7 @@ public class STNode
 
     public STNode()
     {
-        this.nodeValue = NodeValue.N0;
+        this.nodeValue = NodeValue.NPROG;
         this.leftChild = new STNode();
         this.middleChild = new STNode();
         this.rightChild = new STNode();
@@ -93,6 +93,6 @@ public class STNode
     //TODO rework to suit assignment specs
     public String toString()
     {
-        return this.getNodeValue().getNodeValue();
+        return String.valueOf(this.getNodeValue());
     }
 }

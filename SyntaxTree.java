@@ -50,7 +50,6 @@ public class SyntaxTree
         this.setRoot(this.program());
     }
 
-
     //Preconditions:  The current SyntaxTree object has been properly declared & intialized
     //Postconditions: Display the AST in pre order notation in the terminal
     public void outputTree() {this.output.outputSyntaxTree(this);}
@@ -106,8 +105,8 @@ public class SyntaxTree
         return this.match(Tokens.TCNST) ? this.initlist() : new STNode();
     }
 
-    //Original Rule:        NILIST <initlist> ::= <init> | <init> , <initlist>
-    //After Left Factoring: NILIST <initlist> ::= <init> {epsilon | , <initlist>}
+    //Original Rule: NILIST <initlist> ::= <init> | <init> , <initlist>
+    //Left Factored: NILIST <initlist> ::= <init> {epsilon | , <initlist>}
     private STNode initlist()
     {
         STNode tr1, tr2;
@@ -154,8 +153,8 @@ public class SyntaxTree
         return this.match(Tokens.TTYPS) ? this.typelist() : new STNode();
     }
 
-    //Original Rule:         NTYPEL <typelist> ::=  <type> <typelist> | <type>
-    //After Left Factoring:  NTYPEL <typelist> ::=  <type> {epsilon | <typelist>}
+    //Original Rule: NTYPEL <typelist> ::=  <type> <typelist> | <type>
+    //Left Factored: NTYPEL <typelist> ::=  <type> {epsilon | <typelist>}
     private STNode typelist()
     {
         STNode t1, t2;
@@ -211,11 +210,11 @@ public class SyntaxTree
     }
 
     //Left Factored like initlist
-    //Original Rule:        NALIST <arrdecls> ::= <arrdecl> , <arrdecls> | <arrdecl>
-    //After Left Factoring: NALIST <arrdecls> ::= <arrdecl> {epsilon | , <arrdecls>}
+    //Original Rule: NALIST <arrdecls> ::= <arrdecl> , <arrdecls> | <arrdecl>
+    //Left Factored: NALIST <arrdecls> ::= <arrdecl> {epsilon | , <arrdecls>}
     private STNode arraydecls()
     {
-        STNode a1 = null, a2 = null;
+        STNode a1, a2;
         a1 = arrdecl();
         //Check for coma
         if(this.next.getTokenID() == 32)
@@ -273,8 +272,8 @@ public class SyntaxTree
         return new STNode(NodeValue.NMAIN, slist, stats);
     }
 
-    //Original Rule:       NSDLST <slist> ::= <sdecl> , <slist> | <sdecl> | epsilon
-    //After Left Factoring NSDLST <slist> ::= <sdecl> {epsilon| , <slist>}
+    //Original Rule: NSDLST <slist> ::= <sdecl> , <slist> | <sdecl> | epsilon
+    //Left Factored: NSDLST <slist> ::= <sdecl> {epsilon| , <slist>}
     private STNode slist()
     {
         STNode sdecl, slist;
@@ -307,8 +306,8 @@ public class SyntaxTree
         return new STNode();
     }
 
-    //Original Rule:        NFLIST <fields> ::= <sdecl> , <fields> | <sdecl>
-    //After Left Factoring: NFLIST <fields> ::= <sdecl> {epsilon | , <fields>}
+    //Original Rule: NFLIST <fields> ::= <sdecl> , <fields> | <sdecl>
+    //Left Factored: NFLIST <fields> ::= <sdecl> {epsilon | , <fields>}
     private STNode fields()
     {
         STNode f1, f2;
@@ -325,7 +324,7 @@ public class SyntaxTree
     }
 
 
-    //Rule:          NFUNCS <funcs> ::= <func> <funcs> | <func>
+    //Original Rule: NFUNCS <funcs> ::= <func> <funcs>  | <func>
     //Left Factored: NFUNCS <funcs> ::= <func> {epsilon | <funcs>}
     private STNode funcs()
     {
@@ -340,22 +339,27 @@ public class SyntaxTree
         return new STNode(NodeValue.NFUNCS, func, funcs);
     }
 
-    //Rule: NFUND <func> ::= func <id> ( <plist> ) : <rytpe> <funcbody>
-    //I removed <stype> which means <rtype> ::= int | real | bool | void
+    //Original Rule: NFUND <func> ::= func <id> ( <plist> ) : <rytpe> <funcbody>
+    //I removed <stype> ::= int| real | bool which means <rtype> ::= int | real | bool | void
+    //<plist> ::= <params> | epsilon became if statement
     //TODO change whats returned
     private STNode func()
     {
         //Only way we enter this function is if next is the func keyword
         //  so generate the next valid token
         //TODO either call next token here or before this function call in funcs()
+        STNode params = new STNode();
         this.nextToken();
         //match identifier token for <id>
         this.match(Tokens.TIDEN);
         //match left parantheses token for (
         this.match(Tokens.TLPAR);
-        //call plist() for <plist>
-        //<plist> ::= <params> | epsilon
-        STNode plist = this.plist();
+        //TODO <plist> can be epsilon
+        //if we have the start of <params> which goes to <param> which starts with either <id> or const keyword
+        if(this.next.getTokenID() == 58 || this.next.getTokenID() == 2)
+        {
+            params = this.params();
+        }
         //match right parantheses token for )
         this.match(Tokens.TRPAR);
         //match colon token for :
@@ -366,22 +370,384 @@ public class SyntaxTree
             //call funcbody() for <funcbody>
             STNode funcbody = this.funcbody();
             //Return a STNode object with the NodeValue NFUND, plist as left child, rtype as middle child and funcbody as right child
-            return new STNode(NodeValue.NFUND, plist, funcbody);
+            //if <plist> takes epsilon path then params will just be a blank node
+            return new STNode(NodeValue.NFUND, params, funcbody);
         }
-        else
+        this.error("int or real or bool or void not found");
+        return new STNode();
+    }
+
+    //Original Rule: NPLIST <params> ::= <param> , <params>
+    //                      <param>  ::= <sdecl> | <arrdecl> | const <arrdecl>
+    //Left Factored: NPLIST <params> ::= <param> {epsilon | , <params>}
+    private STNode params()
+    {
+        STNode param, params;
+        param = this.param();
+        //check to see if we have a coma for , <params>
+        if(this.next.getTokenID() == 32)
         {
-            this.error("int or real or bool or void not found");
+            //generate next valid token
+            this.nextToken();
+            params = this.params();
+            return new STNode(NodeValue.NPLIST, param, params);
+        }
+        //epsilon path
+        return param;
+    }
+
+    //Rules: NSIMP <param> ::= <sdecl>
+    //       NARRP <param> ::= <arrdecl>
+    //       NARRC <param> ::= const <arrdecl>
+    //TODO need to decide between <sdecl> and <arrdecl>
+    private STNode param()
+    {
+        STNode sdecl, arrdecl;
+        //check for const keyword for the rule const <arrdecl>
+        if(this.next.getTokenID() == 2)
+        {
+            //we have seen the const keyword so generate next valid token
+            this.nextToken();
+            arrdecl = this.arrdecl();
+            //Return a node for NodeValue NARCC with arrdecl as left child
+            return new STNode(NodeValue.NARRC, arrdecl);
+        }
+        //<sdecl> and <arrdecl> both start with <id> :
+        else if(this.next.getTokenID() == 58)
+        {
+            sdecl = this.sdecl();
+            arrdecl = this.arrdecl();
+        }
+        return new STNode(NodeValue.NSIMP);
+    }
+
+    //Original Rule: Special <funcbody> ::= <locals> begin <stats> end
+    //                       <locals>   ::= <dlist> | epsilon
+    private STNode funcbody()
+    {
+        STNode locals, stats;
+        //For <locals>:
+        //since <dlist> ::= <decl> ::= <sdecl> | <arrdecl> which both start with <id>
+        if(this.next.getTokenID() == 58)
+        {
+            //dont want to generate next valid token because <sdecl> and <arrdecl> start with an identifier token
+            locals = this.dlist();
+        }
+        //check for begin keyword
+        this.match(Tokens.TBEGN);
+        stats = this.stat();
+        //check for end keyword
+        this.match((Tokens.TTEND));
+        return new STNode();
+    }
+
+    //Original Rule: NDLIST <dlist> ::= <decl> , <dlist>
+    //                      <dlist> ::= <decl>
+    //                      <decl>  ::= <sdecl> | <arrdecl>
+    //Left Factored: NDLSIT <dlist> ::= <decl> {epsilon | , <dlist>}
+    private STNode dlist()
+    {
+        STNode decl, dlist;
+        decl = this.decl();
+        //check for ,
+        if(this.next.getTokenID() == 32)
+        {
+            this.nextToken();
+            dlist = this.dlist();
+            return new STNode(NodeValue.NDLIST, decl, dlist);
+        }
+        //epsilon path
+        return decl;
+    }
+
+    //Rule: Special <decl> ::= <sdecl> | <arrdecl>
+    //TODO change whats returned
+    private STNode decl()
+    {
+        //check of <id> which is the start of both rules
+        this.match(Tokens.TIDEN);
+        //check for : which comes after <id> in both rules
+        this.match(Tokens.TCOLN);
+        //if we have the keywords int or real or bool then that satisfies <decl> ::= <sdecl>
+        if(this.next.getTokenID() == 14 || this.next.getTokenID() == 15 || this.next.getTokenID() == 16)
+        {
+            //generate next valid token
+            this.nextToken();
+            //Return a node with NSDECL
+            return new STNode(NodeValue.NSDECL);
+        }
+        //if we have an identifier after the coln then we can satisfy <decl> ::= <arrdecl>
+        if(this.next.getTokenID() == 58)
+        {
+            //generate next valid token
+            this.nextToken();
+            //Return a node with NARDD
+            return new STNode(NodeValue.NARRD);
         }
         return new STNode();
     }
 
-    private STNode plist() {return new STNode();}
-    private STNode funcbody() {return new STNode();}
+    //unsure if I should left factor it
+    //Original rules: NSTATS <stats> ::= <stat> ; <stats> | <strstat> <stats>
+    //                       <stats> ::= <stat> ; | <strstat>
+    //Left Factored:  NSTATS <stats> ::= <stat> ; | <strstat> {epsilon | <stats>}
+    //TODO fix
+    private STNode stats()
+    {
+        //stat1 for <stat> and stat2 for <strstat> and stats for recursive call
+        STNode stat1, stat2, stats;
+        //need to decide which rule to satisfy
+        stat1 = this.stat();
+        stat2 = this.strstat();
+        //check for ;
+        if(this.next.getTokenID() == 56)
+        {
+            //generate next valid token
+            this.nextToken();
+            stats = this.stats();
+            return new STNode(NodeValue.NSTATS, stat1, stats);
+        }
+        return new STNode(NodeValue.NSTATS, stat1, stat2);
+    }
 
-    private STNode stats() {return new STNode();}
+    //TODO implement <asgnstat> and <callstat> case
+    //Rule: Special <stat> ::= <repstat> | <asgnstat> | <iostat> | <callstat> | <returnstat>
+    //<asgnstat> and <callstat> clash because <asgnstat> starts with <var> which starts with <id> and <callstat> starts with <id>
+    private STNode stat()
+    {
+        return switch (this.next.getTokenID())
+        {
+            case 18 -> this.repstat();
+            case 22, 23, 24 -> this.iostat();
+            case 25 -> this.returnstat();
+            default -> new STNode();
+        };
+    }
 
-    //Rule: NSIMV <var> ::= <id>
-    //      NARRV <var> ::= <id> [ <expr ] . <id>
+    //Rule: <Special> <strstat> ::= <forstat> | <ifstat>
+    //TODO change whats returned
+    private STNode strstat()
+    {
+        //if lookahead is the for keyword which is the start of <forstat> then satisfy the <strstat> ::= <forstat> rule
+        if (this.next.getTokenID() == 17) return this.forstat();
+        //if lookahead is the if keyword which is the start of <ifstat> then satisfy the <strstat> ::= <ifstat> rule
+        if (this.next.getTokenID() == 20) return this.ifstat();
+        return new STNode();
+    }
+
+    //Rule: NFOR <forstat> ::= for ( <asgnlist> ; <bool> ) <stats> end
+    private STNode forstat()
+    {
+        STNode alist, bool, stats;
+        //match & consume for keyword
+        this.match(Tokens.TTFOR);
+        //match & consume left parentheses for (
+        this.match(Tokens.TLPAR);
+        //satisfy <asgnlist> rule
+        alist = this.asgnlist();
+        //match & consume comma
+        this.match(Tokens.TCOMA);
+        //satisfy <bool> rule
+        bool = this.bool();
+        //match & consume right parenthses for )
+        this.match(Tokens.TRPAR);
+        //satisfy <stats> rule
+        stats = this.stats();
+        //match & consume end keyword
+        this.match(Tokens.TTEND);
+        //Return a node for NodeValue NFOR, alist as left child, bool as middle child and stats as right child
+        return new STNode(NodeValue.NFOR, alist, bool, stats);
+    }
+
+    //Rule: NREPT <repstat> ::= repeat ( <asgnlist> ) <stats> until <bool>
+    private STNode repstat()
+    {
+        STNode alist, stats, bool;
+        //match & consume repeat keyword
+        this.match(Tokens.TREPT);
+        //match & consume left parentheses for (
+        this.match(Tokens.TLPAR);
+        //satisfy <asgnlist> rule
+        alist = this.asgnlist();
+        //match & consume right parenthses for )
+        this.match(Tokens.TRPAR);
+        //satisfy <stats> rule
+        stats = this.stats();
+        //match & consume until keyword
+        this.match(Tokens.TUNTL);
+        //satisfy <bool> rule
+        bool = this.bool();
+        //return a node for NodeValue NREPT, alist becomes left child, stats becomes middle and bool becomes right
+        return new STNode(NodeValue.NREPT, alist, stats, bool);
+    }
+
+    //Original Rule: NASGNS <asgnlist>  ::= <asgnstat> | <asgnstat>, <asgnlist>
+    //Left Factored: NASGNS <asignlist> ::= <asgnstat> {epsilon | , <asgnlist>}
+    private STNode asgnlist()
+    {
+        STNode stat ,list;
+        stat = this.asgnstat();
+        //if we have a comma
+        if(this.next.getTokenID() == 32)
+        {
+            //generate next valid token
+            this.nextToken();
+            list = this.asgnlist();
+            //return a new node with NodeValue NASNS, stat is assigned as the left child and list becomes the right child
+            return new STNode(NodeValue.NASGNS, stat, list);
+        }
+        //epsilon path just return <asgnstat>
+        return stat;
+    }
+
+    //Rule: Special <asgnstat> ::= <var> <asgnop> <bool>
+    //              <asgnop>   ::= = | += | -= | *= | /=
+    private STNode asgnstat()
+    {
+        STNode stat = new STNode(), var, bool;
+        //generate node and satisfy <var> rule
+        var = this.var();
+        //swtich case for <asgnop>
+        switch(this.next.getTokenID())
+        {
+            case 37: stat.setNodeValue(NodeValue.NASGN);
+            case 51: stat.setNodeValue(NodeValue.NPLEQ);
+            case 52: stat.setNodeValue(NodeValue.NMNEQ);
+            case 53: stat.setNodeValue(NodeValue.NSTEQ);
+            case 54: stat.setNodeValue(NodeValue.NDVEQ);
+            default: this.error("Assignment operator not found");
+        }
+        //generate node and satisfy <bool> rule
+        bool = this.bool();
+        //following the diagram from week 5 lecture slide 33
+        stat.setLeftChild(var);
+        stat.setRightChild(bool);
+        return stat;
+    }
+
+    //This is the Dangling Else grammar which is a classic example of an ambigious grammar
+    //Original Rule: NIFTH  <ifstat> ::= if ( <bool> ) <stats> end
+    //               NIIFTE <ifstat> ::= if ( <bool> ) <stats> else <stats> end
+    //Left Factored: <ifstat> ::= if ( <bool> ) <stats> <iftail>
+    //               <iftail> ::= end | else <stats> end
+    private STNode ifstat()
+    {
+        STNode bool, stats;
+        //match & consume if keyword
+        this.match(Tokens.TIFTH);
+        //match & consume left parentheses for (
+        this.match(Tokens.TLPAR);
+        //generate node and satisfy <bool> rule
+        bool = this.bool();
+        //match & consume right parentheses for )
+        this.match(Tokens.TRPAR);
+        //generate node and satisfy <stats> rule
+        stats = this.stats();
+        return this.iftail(bool, stats);
+    }
+
+    //Rule: <iftail> ::= end | else <stats> end
+    //TODO change whats returned
+    private STNode iftail(STNode child1, STNode child2)
+    {
+        //if we have the end keyword
+        if(this.next.getTokenID() == 8)
+        {
+            //generate next valid token
+            this.nextToken();
+            return new STNode(NodeValue.NIFTH, child1, child2);
+        }
+        //if we do not have the end keyword check for else keyword
+        if(this.next.getTokenID() == 21)
+        {
+            this.nextToken();
+            STNode stats = stats();
+            //generate a new node with NodeValue of NIFTE, child1 as left child, child2 as middle child and stats as right child
+            STNode iftail = new STNode(NodeValue.NIFTE, child1, child2, stats);
+            //match & consume end keyword
+            this.match(Tokens.TTEND);
+            return iftail;
+        }
+        return new STNode();
+    }
+
+    //Original Rule: NINPUT <iostat> ::= input   <vlist>
+    //               NPRINT <iostat> ::= print   <prlist>
+    //               NPRLN  <iostat> ::= println <prlist>
+    //TODO change whats returned
+    private STNode iostat()
+    {
+        //check for input keyword
+        if(this.next.getTokenID() == 22)
+        {
+            //generate next valid token
+            this.nextToken();
+            STNode vlist = this.vlist();
+            //return a new node with NINPUT as its node value and vlist as its left child
+            return new STNode(NodeValue.NINPUT, vlist);
+        }
+        //check for print or println keyword
+        if(this.next.getTokenID() == 23 || this.next.getTokenID() == 24)
+        {
+            STNode iostat = new STNode();
+            //if we have the print keyword then the NodeValue for iostat is NPRINT
+            if(this.next.getTokenID() == 23) iostat.setNodeValue(NodeValue.NPRINT);
+            //same as above but for println keyword
+            if(this.next.getTokenID() == 24) iostat.setNodeValue(NodeValue.NPRLN);
+            STNode prlist = this.prlist();
+            iostat.setLeftChild(prlist);
+            return iostat;
+        }
+        return new STNode();
+    }
+
+    //Original Rule: NCALL <callstat> ::= <id> ( <elist> ) | <id> ()
+    //Notes: common start to the rule which is <id> (
+    //TODO fix for optional rule
+    private STNode callstat()
+    {
+        //match & consume identifier token for <id>
+        this.match(Tokens.TIDEN);
+        //match & consume left parantheses token for (
+        this.match(Tokens.TLPAR);
+        //create a new node for <elist>
+        STNode elist = this.elist();
+        //match & consume right parentheses for )
+        this.match(Tokens.TRPAR);
+        return new STNode(NodeValue.NCALL);
+    }
+
+    //Original Rule: NRETN <returnstat> ::= return | return <expr>
+    //TODO check if I am doing this correctly, possibly only satisfying the return <expr> rule
+    private STNode returnstat()
+    {
+        //match and consume return keyword
+        this.match(Tokens.TRETN);
+        STNode expr = this.expr();
+        //Return a node with the NRETN NodeValue and expr as its left child
+        return new STNode(NodeValue.NRETN, expr);
+    }
+
+    //Original Rule: NVLIST <vlist> ::= <var> , <vlist> | <var>
+    //Left Factored: NVLIST <vlist> ::= <var> {epsilon | , <vlist>}
+    private STNode vlist()
+    {
+        STNode vlist, var;
+        var = this.var();
+        //if the look ahead token is a coma then we can consume it and make a recusive call for <vlist>
+        if(this.next.getTokenID() == 32)
+        {
+            //generate next valid token
+            this.nextToken();
+            vlist = this.vlist();
+            //var which is <var> will be the left child and vlist which is <vlist> will be the right child
+            return new STNode(NodeValue.NVLIST, var, vlist);
+        }
+        return var;
+    }
+
+    //Original Rules: NSIMV <var> ::= <id>
+    //                NARRV <var> ::= <id> [ <expr ] . <id>
     private STNode var()
     {
         STNode var, expr;
@@ -409,21 +775,39 @@ public class SyntaxTree
         return var;
     }
 
+    //Original Rule: NEXPL <elist> ::= <bool> , <elist> | <bool>
+    //Left Factored: NEXPL <elist> ::= <bool> {epsilon | , <elist>}
+    private STNode elist()
+    {
+        STNode bool, elist;
+        bool = this.bool();
+        if(this.next.getTokenID() == 32)
+        {
+            //our lookahead is a coma so generate next valid token object from our scanner
+            this.nextToken();
+            //Recusive rule/function call
+            elist = this.elist();
+            //Return a node with the NodeValue NEXPL, bool as its left child and elist as its right child
+            return new STNode(NodeValue.NEXPL, bool, elist);
+        }
+        //Epsilon path
+        return bool;
+    }
 
-    //Original Rule:                 NBOOL <bool>     ::= <bool> <logop> <rel> | <rel>
-    //After removing left recursion: NBOOL <bool>     ::= <rel> <booltail>
-    //                                     <booltail> ::= <logop> <rel> <booltail> | epsilon
+    //Original Rule:  NBOOL <bool> ::= <bool> <logop> <rel> | <rel>
+    //Left Recursion: NBOOL <bool> ::= <rel> <booltail>
+    //                      <booltail> ::= <logop> <rel> <booltail> | epsilon
     private STNode bool()
     {
         STNode rel = this.rel();
         return this.booltail(rel);
     }
 
-    //Rule: <logop> <rel> <booltail> | epsilon
+    //Rule: <booltail> ::= <logop> <rel> <booltail> | epsilon
     private STNode booltail(STNode left)
     {
-        STNode parent = null, right;
-        //possibly need to call this.nextToken() to generate the next valid token
+        STNode parent, right;
+        //If we have <logop> then try to satisfy the <rel> <booltail> part of the rule
         if(this.next.getTokenID() == 27 || this.next.getTokenID() == 28 || this.next.getTokenID() == 29)
         {
             NodeValue nv = null;
@@ -437,46 +821,66 @@ public class SyntaxTree
             parent = new STNode(nv,left);
             //Generate next valid Token object from the scanner
             this.nextToken();
+            //<rel>
             right = rel();
             parent.setRightChild(right);
-            return booltail(parent);
+            //<booltail>
+            return this.booltail(parent);
         }
         //Error check/recovery here?
+        //epsilon path
         return left;
     }
 
-    //Rules: NNOT    <rel> ::= not <expr> <relop> <expr>
-    //       Special <rel> ::= <expr> <relop> <expr> | <expr>
-    //After Left Factoring: <rel> ::= <expr> <relop> <expr> {not | <expr>}
+    //Original Rule: NNOT <rel> ::= not <expr> <relop> <expr> | <expr> <relop> <expr> | <expr>
     //TODO fix
     private STNode rel()
     {
-        STNode rel = new STNode();
-        //left/first <expr>
-        STNode exprL = this.expr();
-        STNode relop = this.relop();
-        //right/second <expr>
-        STNode exprR = this.expr();
-        //check for not keyword
+        STNode exprL, relop, exprR;
+        //if we have the not keyword
         if(this.next.getTokenID() == 26)
         {
-            //node value of NNOT
-            rel = new STNode(NodeValue.NNOT, exprL, relop, exprR);
-            return rel;
+            exprL = this.expr();
+            relop = this.relop();
+            exprR = this.expr();
+            return new STNode(NodeValue.NNOT, exprL, relop, exprR);
         }
-        return rel;
+        return this.expr();
     }
 
+    //Rules: NEQL <relop> ::= ==
+    //       NNEQ <relop> ::= !=
+    //       NGRT <relop> ::= >
+    //       NGEQ <relop> ::= >=
+    //       NLEQ <relop> ::= <=
+    //       NLSS <relop> ::= <
+    //TODO might need to add a this.nextToken function call
+    private STNode relop()
+    {
+        return switch(this.next.getTokenID())
+        {
+            case 50 -> new STNode(NodeValue.NEQL);
+            case 49 -> new STNode(NodeValue.NNEQ);
+            case 45 -> new STNode(NodeValue.NGRT);
+            case 48 -> new STNode(NodeValue.NGEQ);
+            case 47 -> new STNode(NodeValue.NLEQ);
+            case 44 -> new STNode(NodeValue.NLSS);
+            default -> new STNode();
+        };
+    }
 
-    //Rule  NADD <expr> ::= <term> <exprtail>
-    //      NSUB <expr> ::= <term> <exprtail>
+    //Original Rule: NADD <expr> ::= <expr> + <term>
+    //               NSUB <expr> ::= <expr> - <term>
+    //Left Factored: NADD <expr> ::= <term> <exprtail>
+    //               NSUB <expr> ::= <term> <exprtail>
     private STNode expr()
     {
         STNode term = this.term();
+        //If we do not have a + or - then just <term> rule is returned
         return this.exprtail(term);
     }
 
-    //Rule: <exprtail> ::= + <term> <facttail> | - <term> <facttail> | epsilon
+    //Rule: <exprtail> ::= + <term> | - <term> | epsilon
     private STNode exprtail(STNode left)
     {
         STNode tail, term;
@@ -505,12 +909,12 @@ public class SyntaxTree
     }
 
     //Combined all three rules into one function
-    //Original Rules:       NMUL <term> ::= term * fact | fact
-    //                      NDIV <term>::= term / fact | fact
-    //                      NMOD <term> ::= term % fact | fact
-    //After left Factoring: NMUL <term> ::= <fact> {epsilon | * <term>}
-    //                      NDIV <term> ::= <fact> {epsilon | / <term>}
-    //                      NMOD <term> ::= <fact> {epsilon | % <term>}
+    //Original Rules: NMUL <term> ::= <term> * <fact> | <fact>
+    //                NDIV <term> ::= <term> / <fact> | <fact>
+    //                NMOD <term> ::= <term> % <fact> | <fact>
+    //Lef Factored: NMUL <term> ::= <fact> {epsilon | * <term>}
+    //              NDIV <term> ::= <fact> {epsilon | / <term>}
+    //              NMOD <term> ::= <fact> {epsilon | % <term>}
     private STNode term()
     {
         STNode term, fact;
@@ -524,66 +928,113 @@ public class SyntaxTree
             if(this.next.getTokenID() == 41) return new STNode(NodeValue.NDIV, term, fact);
             if(this.next.getTokenID() == 42) return new STNode(NodeValue.NMOD, term, fact);
         }
-        //epsilon path
+        //epsilon path in the left factored rules
         return fact;
     }
 
-    // OR <exponent> came from <fact> ::= <exponent> and OR <var> comes from <exponent> ::= <var>
-    //Original Rule:        NPOW <fact> ::= <fact> ^ <exponent> | <exponent> | <var>
-    //After Left Factoring: NPOW <fact> ::= <exponent> <facttail>
+    // OR <exponent> came from <fact> ::= <exponent>
+    //Original Rule: NPOW <fact> ::= <fact> ^ <exponent> | <exponent>
+    //Left Factored: NPOW <fact> ::= <exponent> <facttail>
     private STNode fact()
     {
         STNode exp = this.exponent();
         return this.facttail(exp);
     }
 
-    //Rule  <facttail> ::= ^ <exponent> <facttail> | epsilon
+    //Rule: <facttail> ::= ^ <exponent> <facttail> | epsilon
     private STNode facttail(STNode left)
     {
         STNode parent, right;
         if(this.next.getTokenID() == 43)
         {
-            //we have foudn the ^ so generate the next valid token
+            //we have found the ^ so generate the next valid token
             this.nextToken();
             parent = new STNode(NodeValue.NPOW, left);
             right = this.exponent();
             parent.setRightChild(right);
-            return booltail(parent);
+            return this.facttail(parent);
         }
+        //epsilon path
         return left;
     }
 
-    //<exponent>
+    //Original Rules:
+    //  <exponent> ::= <intlit>
+    //  <exponent> ::= <reallit>
+    //  <exponent> ::= true
+    //  <exponent> ::= false
+    //  <exponent> ::= ( <bool> )
+    //  <exponent> ::= <fncall>
+    //  <exponent> ::= <var>
     private STNode exponent()
     {
-        //<exponent> ::= <intlit>
+        //Check for integer literal token
         if(this.next.getTokenID() == 59) return new STNode(NodeValue.NILIT);
-        //<exponent> ::= <reallit>
+        //check for float literal token
         if(this.next.getTokenID() == 60) return new STNode(NodeValue.NFLIT);
-        //<exponent> ::= true
+        //check for true keyword token
         if(this.next.getTokenID() == 30) return new STNode(NodeValue.NTRUE);
-        //<exponent> ::= false
+        //check for false keyword token
         if(this.next.getTokenID() == 31) return new STNode(NodeValue.NFALS);
-        //<exponent> ::= ( <bool> )
+        //check for ( in the ( <bool> ) rule
         if(this.next.getTokenID() == 35)
         {
-            //( for ( <bool> )
             this.nextToken();
             return this.bool();
         }
-        //<exponent> ::= <fncall>
+        //check for identifier which is the start of the <fncall> rule
         if(this.next.getTokenID() == 58)
         {
-            //identifier token which is the start of <fncall>
             this.nextToken();
             return this.fncall();
         }
-        //<exponent> ::= <var>
+        //if all rules above are not satisfied then satisiy the <var> rule
         return this.var();
     }
 
-     private STNode fncall() {return new STNode();}
+    //Original Rule: NFCALL <fncall> ::= <id> ( <elist> ) | <id> ()
+    //Left Factored: NFCALL <fncalL> ::= <id> ( <opt> )
+    //                      <opt>    ::= <elist> | epsilon
+    //TODO need to make <elist> optional
+    private STNode fncall()
+    {
+        STNode elist = null;
+        //match & consume identifier token for <id>
+        this.match(Tokens.TIDEN);
+        //match & consume left parentheses token for (
+        this.match(Tokens.TLPAR);
+        //generate node and satisfy <elist> rule
+        elist = this.elist();
+        //match & consume right paranetheses token for )
+        this.match(Tokens.TRPAR);
+        return new STNode(NodeValue.NFCALL);
+    }
 
+    //Original Rule: NPRLST <prlist> ::= <printitem> , <prlist>
+    //                      <prlist> ::= <printitem>
+    //Left Factored: NPRLST <prlist> ::= <printitem> {epsilon | , <prlist>}
+    private STNode prlist()
+    {
+        STNode item, list;
+        item = this.printitem();
+        //if we have a coma
+        if(this.next.getTokenID() == 32)
+        {
+            //generate next valid token
+            this.nextToken();
+            list = this.prlist();
+            return new STNode(NodeValue.NPRLST, item, list);
+        }
+        //epsilon path
+        return item;
+    }
+
+    //Rules: NSTRG   <printitem> ::= <string>
+    //       Special <printitem> ::= <expr>
+    private STNode printitem()
+    {
+        return this.next.getTokenID() == 61 ? new STNode(NodeValue.NSTRG) : this.expr();
+    }
     //TODO rework
     private boolean match(Tokens t)
     {
