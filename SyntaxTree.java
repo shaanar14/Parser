@@ -6,9 +6,7 @@
         Each node in the tree represents an operator and its children an operand
  */
 
-import org.w3c.dom.Node;
-
-//TODO reorder grammar rule functions
+//TODO add symbol table and error recovery logic
 public class SyntaxTree
 {
     //Private member variables
@@ -122,14 +120,13 @@ public class SyntaxTree
     }
 
     //Rule: NINIT <init> ::= <id> = <expr>
-    //TODO add symbol table entry creation after we consume the identifier and equal sign
     private STNode init()
     {
         //Consume <id> which will be an identifier Token object
         boolean consumed1 = this.match(Tokens.TIDEN);
         //Consume the equal symbol
         boolean consumed2 = this.match(Tokens.TEQUL);
-        //TODO rework
+        //TODO rework if statement logic
         if(!consumed1)
         {
             if(!consumed2)
@@ -171,7 +168,6 @@ public class SyntaxTree
     private STNode type()
     {
         //match identifier token, this is for both <structid> and <typeid> as they are both identifiers
-        //TODO possibly have to do something with the symbol table here
         this.match(Tokens.TIDEN);
         //match is keyword
         this.match(Tokens.TTTIS);
@@ -229,7 +225,6 @@ public class SyntaxTree
     }
 
     //Rule: NARRD <arrdecl> ::= <id> : <typeid>
-    //TODO create symbol table entry object and fix this.error() calls
     private STNode arrdecl()
     {
         //match & consume identifier token for <id>
@@ -354,7 +349,7 @@ public class SyntaxTree
         this.match(Tokens.TIDEN);
         //match left parantheses token for (
         this.match(Tokens.TLPAR);
-        //TODO <plist> can be epsilon
+        //TODO implement optional <plist> because <plist> can be epsilon
         //if we have the start of <params> which goes to <param> which starts with either <id> or const keyword
         if(this.next.getTokenID() == 58 || this.next.getTokenID() == 2)
         {
@@ -491,7 +486,7 @@ public class SyntaxTree
     //Original rules: NSTATS <stats> ::= <stat> ; <stats> | <strstat> <stats>
     //                       <stats> ::= <stat> ; | <strstat>
     //Left Factored:  NSTATS <stats> ::= <stat> ; | <strstat> {epsilon | <stats>}
-    //TODO fix
+    //TODO need to implement <stat> ; | <strstat>
     private STNode stats()
     {
         //stat1 for <stat> and stat2 for <strstat> and stats for recursive call
@@ -703,7 +698,7 @@ public class SyntaxTree
 
     //Original Rule: NCALL <callstat> ::= <id> ( <elist> ) | <id> ()
     //Notes: common start to the rule which is <id> (
-    //TODO fix for optional rule
+    //TODO fix for optional rule, exact same as <fncall>
     private STNode callstat()
     {
         //match & consume identifier token for <id>
@@ -718,7 +713,7 @@ public class SyntaxTree
     }
 
     //Original Rule: NRETN <returnstat> ::= return | return <expr>
-    //TODO check if I am doing this correctly, possibly only satisfying the return <expr> rule
+    //TODO rework to make <expr> optional
     private STNode returnstat()
     {
         //match and consume return keyword
@@ -833,7 +828,7 @@ public class SyntaxTree
     }
 
     //Original Rule: NNOT <rel> ::= not <expr> <relop> <expr> | <expr> <relop> <expr> | <expr>
-    //TODO fix
+    //TODO funciton needs an entire rework, the rule has a common pattern of <expr> <relop> <expr>
     private STNode rel()
     {
         STNode exprL, relop, exprR;
@@ -854,7 +849,6 @@ public class SyntaxTree
     //       NGEQ <relop> ::= >=
     //       NLEQ <relop> ::= <=
     //       NLSS <relop> ::= <
-    //TODO might need to add a this.nextToken function call
     private STNode relop()
     {
         return switch(this.next.getTokenID())
@@ -995,7 +989,7 @@ public class SyntaxTree
     //Original Rule: NFCALL <fncall> ::= <id> ( <elist> ) | <id> ()
     //Left Factored: NFCALL <fncalL> ::= <id> ( <opt> )
     //                      <opt>    ::= <elist> | epsilon
-    //TODO need to make <elist> optional
+    //TODO need to make <elist> optional, this rule is similar to <callstat>
     private STNode fncall()
     {
         STNode elist = null;
@@ -1035,7 +1029,7 @@ public class SyntaxTree
     {
         return this.next.getTokenID() == 61 ? new STNode(NodeValue.NSTRG) : this.expr();
     }
-    //TODO rework
+
     private boolean match(Tokens t)
     {
         if(this.next.getTokenID() == t.getID())
@@ -1051,7 +1045,6 @@ public class SyntaxTree
     }
 
     //Message style error reporting function
-    //TODO rework for error recovery
     private void error(String s)
     {
         String e = "Syntax Error: " + s;
@@ -1059,7 +1052,6 @@ public class SyntaxTree
     }
 
     //Token based error reporting function
-    //TODO rework for error recovery
     private void error(Token t)
     {
         String e = String.format("Line %d, Column %d: %s\n", t.getLineNo(), t.getColNo(), t.getLexeme());
