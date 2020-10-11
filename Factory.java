@@ -27,7 +27,6 @@ public class Factory
     //Helper function for indentifierMachine() to match keywords
     //Preconditions: lex.length() != 0
     //Postconditions: checks to see if lex is equal to a keyword and returns its ID otherwise returns -1
-    //TODO might have to rework such that fi is tokenised as if
     private static int keywordMatch(StringBuilder lex)
     {
         for(Keywords k : Keywords.values())

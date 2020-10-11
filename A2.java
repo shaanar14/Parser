@@ -15,6 +15,7 @@ public class A2
         assert(args.length != 1) : "File name required";
         String fileName = args[0];
         LexicalScanner lexical = new LexicalScanner();
+        SyntaxTree st = new SyntaxTree();
         //Read the file with the file name that was given in the program arguments
         lexical.readFile(fileName);
         //Set the input of the OutputController to the file/input that the LexicalScanenr object generated
@@ -24,6 +25,10 @@ public class A2
         //Generate a listing file which is a copy of the input file except that each line will start with its its line number
         //  and all errors found will be written at the end of the file with their respective line numbers
         lexical.generateListing("listing.txt");
+        //Generate Abstract Syntax Tree for the given CD20 source code file
+        st.generateTree();
+        //Output the AST in preorder notation
+        st.outputTree();
         System.exit(0);
     }
 }

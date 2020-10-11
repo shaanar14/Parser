@@ -12,8 +12,6 @@
 public class STNode
 {
     //Private Member Variables
-    //Reference to an entry in the symbol table
-    private SymbolEntry record;
     //The nodes left most child
     private STNode leftChild;
     //The nodes middle child
@@ -23,23 +21,52 @@ public class STNode
     //The node value from the grammar
     //TODO consider going back to a String so we don't have 60 enums
     private NodeValue nodeValue;
+    //Reference to an entry in the symbol table
+    private SymbolEntry record;
 
     public STNode()
     {
-        this.record = new SymbolEntry();
+        this.nodeValue = NodeValue.N0;
         this.leftChild = new STNode();
         this.middleChild = new STNode();
         this.rightChild = new STNode();
-        this.nodeValue = NodeValue.N0;
+        this.record = new SymbolEntry();
     }
 
     public STNode(NodeValue nv)
     {
         this.nodeValue = nv;
-        this.record = new SymbolEntry();
         this.leftChild = new STNode();
         this.middleChild = new STNode();
         this.rightChild = new STNode();
+        this.record = new SymbolEntry();
+    }
+
+    public STNode(NodeValue nv, STNode left)
+    {
+        this.nodeValue = nv;
+        this.leftChild = left;
+        this.middleChild = new STNode();
+        this.rightChild = new STNode();
+        this.record = new SymbolEntry();
+    }
+
+    public STNode(NodeValue nv, STNode left, STNode right)
+    {
+        this.nodeValue = nv;
+        this.leftChild = left;
+        this.rightChild = right;
+        this.middleChild = new STNode();
+        this.record = new SymbolEntry();
+    }
+
+    public STNode(NodeValue nv, STNode left, STNode middle, STNode right)
+    {
+        this.nodeValue = nv;
+        this.leftChild = left;
+        this.middleChild = middle;
+        this.rightChild = right;
+        this.record = new SymbolEntry();
     }
 
     public void setRecord(SymbolEntry r) {this.record = r;}

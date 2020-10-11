@@ -140,14 +140,21 @@ public class OutputController
     //Postconditions: Outputs the LexicalScanner object passed in to the terminal as per the specs of assignment 1
     public void outputLexicalScanner(LexicalScanner ls)
     {
-        //make sure that the LexicalScanner object has read a source code file
-        assert ls.getInput().length() != 0 : "Make sure that you have you called readFile()";
+        //Enforce preconditions
+        assert ls != null : "Make sure that the LexicalScanner object passed in has been declared and initalized";
+        assert ls.getInput().length() != 0 : "Make sure that readFile() has been called on the LexicalScanner object passed in";
         do
         {
             Token temp = ls.nextToken();
             ls.printToken(temp);
             //if(temp.getTokenID() == 62) this.lexicalErrors.add(temp);
         } while(!ls.isEoF());
+    }
+
+    //TODO rework
+    public void outputSyntaxTree(SyntaxTree st)
+    {
+        st.preorder(st.getRoot());
     }
 
     public void addValidToken(Token t) {this.tokenStream.add(t);}
@@ -157,15 +164,9 @@ public class OutputController
     public void addLexicalError(Token e) {this.lexicalErrors.add(e);}
 
     //Possibly have a secondary funciton passing in a STNode object
-    public void addSyntaxError(String s)
-    {
-        this.msgSyntaxErrors.append(s);
-    }
+    public void addSyntaxError(String s) {this.msgSyntaxErrors.append(s);}
 
-    public void addSyntaxError(STNode e)
-    {
-        this.nodeSyntaxErrors.add(e);
-    }
+    public void addSyntaxError(STNode e) {this.nodeSyntaxErrors.add(e);}
 
 
 
