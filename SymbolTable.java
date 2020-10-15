@@ -5,40 +5,63 @@
 
  */
 
+
 import java.util.Hashtable;
 
 public class SymbolTable
 {
-    private Hashtable<Integer, String> table;
-    //need to consider scoping
+    //Hashtables are of Integer , SymbolTable Key Value pairs
+    //One for any constants we find during parsing
+    private Hashtable<Integer, SymbolEntry> consts;
+    //A simple list of Hashtables to capture all the functions found during parsing
+    private Hashtable<Integer, SymbolEntry> funcs;
+    //Another Hashtable for main which will have all statements found during parsing
+    private Hashtable<Integer, SymbolEntry> main;
 
+    //Default Constructor
     public SymbolTable()
     {
-        this.table = new Hashtable<>();
+        this.consts = new Hashtable<>();
+        this.funcs = new Hashtable<>();
+        this.main = new Hashtable<>();
     }
 
-    public void put(Token t)
-    {
-        if(t.getLexeme().equals(""))
-        {
-            String value = t.getIDLabel().toString();
-            this.table.put(t.getLineNo(), value);
-        }
-        else {this.table.put(t.getLineNo(), t.getLexeme());}
-    }
+    //TODO Implement the following:
+    //  void putConsts(Integer, Symbol Entry)
+    //  void putFuncs(Integer, Integer, SymbolEntry)
+    //  void putMain(Integer, SymbolEntry)
+    //  SymbolEntry findConsts(Key) -> get(Key) Hashtable
+    //  SymbolEntry findFuncs(Key)  -> get(Key) from Hashtable
+    //  SymbolEntry findMain(Key)   -> get(Key) from Hashtable
+    //  For find functions use containsKey(Key) to check if the key does actually exist
+    //      becaues i dont want get(Key) to return null
 
-    public String get(Token t)
-    {
-        return this.table.get(t.getLineNo());
-    }
 
-    public int size()
-    {
-        return this.table.size();
-    }
+    //Setters
 
-    public Hashtable<Integer, String> getTable()
-    {
-        return this.table;
-    }
+    //Preconditions:  SymbolTable has been declared and intialized
+    //Postconditions: Assigns the HashTable object c to the private member variable consts
+    public void setConsts(Hashtable<Integer, SymbolEntry> c) {this.consts = c;}
+
+    //Preconditions:  SymbolTable has been declared and intialized
+    //Postconditions: Assigns the HashTable object f to the private member variable funcs
+    public void setFuncs(Hashtable<Integer, SymbolEntry> f) {this.funcs = f;}
+
+    //Preconditions:  SymbolTable has been declared and intialized
+    //Postconditions: Assigns the HashTable object m to the private member variable main
+    public void setMain(Hashtable<Integer, SymbolEntry> m) {this.main = m;}
+
+    //Getters
+
+    //Preconditions:  SymbolTable has been declared and intialized
+    //Postconditions: Returns the HashTable object of the member variable consts
+    public Hashtable<Integer, SymbolEntry> getConsts() {return this.consts;}
+
+    //Preconditions:  SymbolTable has been declared and intialized
+    //Postconditions: Returns the HashTable object of the member variable funcs
+    public Hashtable<Integer, SymbolEntry> getFuncs() {return this.funcs;}
+
+    //Preconditions:  SymbolTable has been declared and intialized
+    //Postconditions: Returns the HashTable object of the member variable main
+    public Hashtable<Integer, SymbolEntry> getMain() {return this.main;}
 }

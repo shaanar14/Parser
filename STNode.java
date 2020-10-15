@@ -19,7 +19,6 @@ public class STNode
     //The nodes right most child
     private STNode rightChild;
     //The node value from the grammar
-    //TODO consider going back to a String so we don't have 60 enums
     private NodeValue nodeValue;
     //Reference to an entry in the symbol table
     private SymbolEntry record;
@@ -27,18 +26,18 @@ public class STNode
     public STNode()
     {
         this.nodeValue = NodeValue.NPROG;
-        this.leftChild = new STNode();
-        this.middleChild = new STNode();
-        this.rightChild = new STNode();
+        this.leftChild = null;
+        this.middleChild = null;
+        this.rightChild = null;
         this.record = new SymbolEntry();
     }
 
     public STNode(NodeValue nv)
     {
         this.nodeValue = nv;
-        this.leftChild = new STNode();
-        this.middleChild = new STNode();
-        this.rightChild = new STNode();
+        this.leftChild = null;
+        this.middleChild = null;
+        this.rightChild = null;
         this.record = new SymbolEntry();
     }
 
@@ -46,8 +45,8 @@ public class STNode
     {
         this.nodeValue = nv;
         this.leftChild = left;
-        this.middleChild = new STNode();
-        this.rightChild = new STNode();
+        this.middleChild = null;
+        this.rightChild = null;
         this.record = new SymbolEntry();
     }
 
@@ -56,7 +55,7 @@ public class STNode
         this.nodeValue = nv;
         this.leftChild = left;
         this.rightChild = right;
-        this.middleChild = new STNode();
+        this.middleChild = null;
         this.record = new SymbolEntry();
     }
 
@@ -89,10 +88,39 @@ public class STNode
 
     public NodeValue getNodeValue() {return this.nodeValue;}
 
+    //Specific getter to retrieve the attribute of the node which is stored in a STNode's record
+    public String getAttribute() {return this.getRecord().getAttribute();}
+
     @Override
-    //TODO rework to suit assignment specs
+    //TODO test on a bigger syntax tree
     public String toString()
     {
-        return String.valueOf(this.getNodeValue());
+        StringBuilder nv = new StringBuilder();
+        nv.append(this.getNodeValue());
+        double length = nv.length();
+        if(length < 7)
+        {
+            while(length != 7)
+            {
+                nv.append(" ");
+                length = nv.length();
+            }
+        }
+        StringBuilder a = new StringBuilder(this.getAttribute());
+        length = a.length();
+        if(length % 7 != 0)
+        {
+            double n = length;
+            //ceiling function of the length of the lexeme divided by 6 and then times that value by 6
+            //e.g. if n = 13 then this will be rounded up ot 18 which is the next multiple of 6 characters
+            n = ((Math.ceil(n/7)) * 7);
+            while(length != n)
+            {
+                a.append(" ");
+                length = a.length();
+            }
+        }
+        nv.append(a);
+        return nv.toString();
     }
 }

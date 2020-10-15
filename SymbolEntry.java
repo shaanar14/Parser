@@ -7,11 +7,13 @@
 
 public class SymbolEntry
 {
+    //TODO add value
     //Private member variables
     //Name of the entry
-    private String name;
-    //Where abouts in the source code file its located
-    private int lineNo;
+    private String attribute;
+    private int id;
+    //Location of the attribute in the source code file
+    private int lineNo, colNo;
     //Whether or not the entry as been declared
     private boolean declared;
     //the type of the entry i.e func, array etc
@@ -19,49 +21,45 @@ public class SymbolEntry
 
     public SymbolEntry()
     {
-        this.name = "";
-        this.declared = false;
+        this.attribute = "";
+        this.id = 0;
         this.lineNo = 0;
+        this.colNo = 0;
+        this.declared = false;
         this.type = null;
     }
 
-    public void setName(String n)
+    public SymbolEntry(String a)
     {
-        this.name = n;
+        this.attribute = a;
+        this.id = 0;
+        this.lineNo = 0;
+        this.colNo = 0;
+        this.declared = false;
+        this.type = null;
     }
 
-    public void setLineNo(int lineNo)
-    {
-        this.lineNo = lineNo;
-    }
+    public void setAttribute(String a) {this.attribute = a;}
 
-    public int getLineNo()
-    {
-        return this.lineNo;
-    }
+    public void setID(int i) {this.id = i;}
 
-    public String getName()
-    {
-        return this.name;
-    }
+    public void setLineNo(int lineNo) {this.lineNo = lineNo;}
 
-    public void setDeclared(boolean dec)
-    {
-        this.declared = dec;
-    }
+    public void setColNo(int c) {this.colNo = c;}
 
-    public boolean isDeclared()
-    {
-        return this.declared;
-    }
+    public void setDeclared(boolean dec) {this.declared = dec;}
 
-    public void setType(Tokens type)
-    {
-        this.type = type;
-    }
+    public void setType(Tokens type){this.type = type;}
 
-    public Tokens getType()
-    {
-        return this.type.label();
-    }
+    public String getAttribute() {return this.attribute;}
+
+    public int getID() {return this.id;}
+
+    public int getLineNo() {return this.lineNo;}
+
+    public int getColNo() {return this.colNo;}
+
+    public boolean isDeclared() {return this.declared;}
+
+    public Tokens getType() {return this.type;}
 }

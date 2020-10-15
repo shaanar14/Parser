@@ -25,6 +25,7 @@ public class OutputController
     private StringBuilder msgSyntaxErrors;
     //Stores all STNode objects that are considered syntax errors
     private ArrayList<STNode> nodeSyntaxErrors;
+    private int syntaxOutputCount;
 
     //Default Constructor
     public OutputController()
@@ -35,6 +36,7 @@ public class OutputController
         this.lexicalErrors = new ArrayList<>();
         this.msgSyntaxErrors = new StringBuilder();
         this.nodeSyntaxErrors = new ArrayList<>();
+        this.syntaxOutputCount = 0;
     }
 
     //Preconditions: LexicalScanner & OutputController object have been declared and initialized.
@@ -151,10 +153,29 @@ public class OutputController
         } while(!ls.isEoF());
     }
 
-    //TODO rework
+    //TODO test with temp and without temp
     public void outputSyntaxTree(SyntaxTree st)
     {
-        st.preorder(st.getRoot());
+        STNode temp = st.getRoot();
+        this.preorderTraversal(temp);
+    }
+
+
+    //Preorder traversal of the Abstract Syntax tree for the output
+    public void preorderTraversal(STNode node)
+    {
+        if(node == null){return;}
+        this.syntaxOutputCount = node.toString().length();
+        if(this.syntaxOutputCount <= 70) System.out.print(node);
+        else
+        {
+            System.out.print(node);
+            System.out.print('\n');
+            this.syntaxOutputCount = 0;
+        }
+        preorderTraversal(node.getLeftChild());
+        if(node.getMiddleChild() != null) {preorderTraversal(node.getMiddleChild());}
+        preorderTraversal(node.getRightChild());
     }
 
     public void addValidToken(Token t) {this.tokenStream.add(t);}
@@ -167,21 +188,6 @@ public class OutputController
     public void addSyntaxError(String s) {this.msgSyntaxErrors.append(s);}
 
     public void addSyntaxError(STNode e) {this.nodeSyntaxErrors.add(e);}
-
-
-
-
-    /*public void outputSyntaxTree(SyntaxTree st)
-    {
-        System.out.println(st.preorder());
-    }
-    //reconsider function name
-    //st.preOrderTraversal()*/
-
-
-
-
-
 
     //Setters
 
@@ -238,4 +244,5 @@ public class OutputController
     public StringBuilder getMsgSyntaxErrors() {return this.msgSyntaxErrors;}
 
     public ArrayList<STNode> getNodeSyntaxErrors() {return this.nodeSyntaxErrors;}
+
 }
