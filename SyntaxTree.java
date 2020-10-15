@@ -2,12 +2,10 @@
     Project 2
     Author: Shaan Arora, C3236359
     SyntaxTree Class
-        An abstract syntax tree data structure to represent the underlying structure of a CD20 program.
-        Each node in the tree represents an operator and its children an operand
+    An abstract syntax tree data structure to represent the underlying structure of a CD20 program for future phases of compilation.
  */
 
 //TODO add symbol table and error recovery logic
-//synchronize on semicolons
 public class SyntaxTree
 {
     //Private member variables
@@ -71,16 +69,37 @@ public class SyntaxTree
     {
         //NPROG
         STNode prog = new STNode(NodeValue.NPROG);
-        //match & consume CD20 keyword token
-        this.match(Tokens.TCD20);
-        //TODO below
-        //then need to capture identifier token afterwards
-        //identifier token needs to go into symbol table somehow and then prog.setRecord() on that entry
-        this.nextToken();
-        //could also do this.next.getTokenID() == 2
+        if(this.next.getTokenID() == Tokens.TCD20)
+        {
+            //Make a new Symbol Entry object capturing the CD20 keyword
+            SymbolEntry p = new SymbolEntry(Tokens.TCD20);
+            //match & consume CD20 keyword token which should be at the start of every CD20 program in a source code file
+            //this will return true because this.next is of Tokens CD20
+            //  and also generate the next valid Token for our lookahead
+            this.match(Tokens.TCD20);
+            //check to see if we do have an identifier token after the CD20 keyword which is the program name
+            if(this.next.getTokenID() == Tokens.TIDEN)
+            {
+                //Set the lexeme of our lookahead token to be the attribute of that SymbolEntry object that is capturing the CD20 keyword
+                p.addToAttribute(this.next.getLexeme());
+                //match & consume the identifier token
+                //this will return true because our lookahead is of type TIDEN and will generate the next valid Token for our lookahead
+                this.match(Tokens.TIDEN);
+                //TODO SymbolTable.setProgram(p);
+                //Now that we have successfuly generated a SymbolEntry for CD20 <id>
+                //  we can now assign it as the record of the STNode prog above
+                prog.setRecord(p);
+            }
+            else
+            {
+                this.error("Program name expected");
+            }
+        }
+        else {this.error("CD20 keyword expected");}
         if(this.next.getTokenID() == Tokens.TCONS || this.next.getTokenID() == Tokens.TTYPS || this.next.getTokenID() == Tokens.TARRS)
         {
             //generate next valid token
+            //not using match() because the start of <globals> will consume this.next
             this.nextToken();
             prog.setLeftChild(this.globals());
         }
@@ -333,21 +352,21 @@ public class SyntaxTree
         return f1;
     }
 
-    //Original Rule: NFUNCS <funcs> ::= <func> <funcs>  | <func>
-    //Left Factored: NFUNCS <funcs> ::= <func> {epsilon | <funcs>}
+    //Original Rule: NFUNCS <funcs> ::= epsilon | <func> <funcs>  | <func>
+    //Left Factored: NFUNCS <funcs> ::= epsilon | <func> {epsilon | <funcs>}
     private STNode funcs()
     {
         STNode func, funcs;
-        //func() will match and consume the func keyword that we saw before we entered this function
-        func = this.func();
         //if we see another func keyword recursive call
         if(this.next.getTokenID() == Tokens.TFUNC)
         {
+            //func() will match and consume the func keyword that we saw before we entered this function
+            func = this.func();
             funcs = this.funcs();
             return new STNode(NodeValue.NFUNCS, func, funcs);
         }
-        //epsilon path
-        return new STNode(NodeValue.NFUNCS, func);
+        //<funcs> ::= epsilon path
+        return new STNode(NodeValue.NFUNCS);
     }
 
     //Original Rule: NFUND   <func>     ::= func <id> ( <plist> ) : <rytpe> <funcbody>
@@ -357,39 +376,39 @@ public class SyntaxTree
     //               Special <funcbody> ::= <locals> begin <stats> end
     //               Special <locals>   ::= <dlist> | epsilon
     //TODO change whats returned
-    //TODO treat funcbody NMAIN
+    //TODO treat funcbody NMAIN?
     //rtype links up to symbol table
     private STNode func()
     {
         STNode params = new STNode(), dlist = new STNode(), stats;
         //match & consume func keyword
+        //which will return true because the only way we can enter this function is the if statement in funcs()
         this.match(Tokens.TFUNC);
-        this.nextToken();
         //match identifier token for <id>
         this.match(Tokens.TIDEN);
         //match left parantheses token for (
         this.match(Tokens.TLPAR);
         //if we have the start of <params> which goes to <param> which starts with either <id> or const keyword
+        //if we dont have the start of the <params> rule then thats okay because <plist> ::= epsilon
         if(this.next.getTokenID() == Tokens.TIDEN || this.next.getTokenID() == Tokens.TCONS) params = this.params();
         //match right parantheses token for )
         this.match(Tokens.TRPAR);
         //match colon token for :
         this.match(Tokens.TCOLN);
         //check for int or real or bool or void for <rtype>
-        //TOOD possibly change to switch
         if(this.next.getTokenID() == Tokens.TVOID ||
            this.next.getTokenID() == Tokens.TINTG ||
            this.next.getTokenID() == Tokens.TREAL ||
            this.next.getTokenID() == Tokens.TBOOL)
         {
+            //capture the keyword in a SymbolEntry
             //generate next valid token
             this.nextToken();
+            //All this below is for <funcbody>
             //check for the start of the rule <dlist> which is an identifier token
             if(this.next.getTokenID() == Tokens.TIDEN) dlist = dlist();
-            //match & consume begin keyword
+            //match & consume begin keyword which will also generate the next valid token if successsful
             this.match(Tokens.TBEGN);
-            //generate next valid token
-            this.nextToken();
             stats = this.stats();
             //match & consume end keyword
             this.match(Tokens.TTEND);
@@ -427,27 +446,60 @@ public class SyntaxTree
     //       NARRC <param> ::= const <arrdecl>
     private STNode param()
     {
+        SymbolEntry p = new SymbolEntry();
         STNode sdecl, arrdecl;
         //check for const keyword for the rule const <arrdecl>
         if(this.next.getTokenID() == Tokens.TCONS)
         {
-            //we have seen the const keyword so generate next valid token
-            this.nextToken();
+            //this.next wont have a lexeme so add it manually
+            p.addToAttribute("const");
+            //match and consume our lookahead
+            this.match(Tokens.TCONS);
             arrdecl = this.arrdecl();
             //Return a node for NodeValue NARCC with arrdecl as left child
-            return new STNode(NodeValue.NARRC, arrdecl);
+            STNode t = new STNode(NodeValue.NARRC, arrdecl);
+            t.setRecord(p);
+            return t;
         }
-        //<sdecl> and <arrdecl> rules
-        //match for identifier which is the start of both rules
-        this.match(Tokens.TIDEN);
-        //check for : after <id> in both rules
-        this.match(Tokens.TCOLN);
+        //check for <id> which is the start of both <sdecl> & <arrdecl>
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            //consume identifier
-            return new STNode(NodeValue.NARRP);
+            p.addToAttribute(this.next.getLexeme());
+            //match for identifier which is the start of both rules
+            this.match(Tokens.TIDEN);
         }
-        //TODO add keyword check here
+        else {this.error("identifier expect");}
+        //check for : after <id> in both <sdecl> & <arrdecl>
+        if(this.next.getTokenID() == Tokens.TCOLN)
+        {
+            //since next is wont have a lexeme we just add the colon in manually
+            p.addToAttribute(":");
+            this.match(Tokens.TCOLN);
+        }
+        else {this.error("colon expected");}
+        //if our lookahead is an identifier token then we can satisfy the  rule <arrdecl>
+        if(this.next.getTokenID() == Tokens.TIDEN)
+        {
+            p.addToAttribute(this.next.getLexeme());
+            //consume identifier
+            this.match(Tokens.TIDEN);
+            //<param> ::= <arrdecl>
+            arrdecl = new STNode(NodeValue.NARRD);
+            arrdecl.setRecord(p);
+            return new STNode(NodeValue.NARRP, arrdecl);
+        }
+        //check for keyword after <id> in <sdecl>
+        if(this.next.getTokenID() == Tokens.TINTG || this.next.getTokenID() == Tokens.TREAL || this.next.getTokenID() == Tokens.TBOOL)
+        {
+            //set the type of the SymbolEntry to be the keyword
+            p.setType(this.next.getTokenID());
+            //match and consume the keyword
+            this.match(this.next.getTokenID());
+            sdecl = new STNode(NodeValue.NSDECL);
+            sdecl.setRecord(p);
+            return new STNode(NodeValue.NSIMP, sdecl);
+        }
+        this.error("identifier or keyword expected");
         return new STNode();
     }
 
@@ -457,28 +509,48 @@ public class SyntaxTree
     //Left Factored: NDLSIT  <dlist> ::= <sdecl> | <arrdecl> {epsilon | , <dlist>}
     private STNode dlist()
     {
+        SymbolEntry r = new SymbolEntry();
         STNode decl = new STNode(), dlist;
-        //<sdecl> & <arrdecl> both start with <id> : so match & consume those
-        this.match(Tokens.TIDEN);
-        this.match(Tokens.TCOLN);
+        //<sdecl> & <arrdecl> both start with <id> so match & consume that
+        if(this.next.getTokenID() == Tokens.TIDEN)
+        {
+            r.addToAttribute(this.next.getLexeme());
+            this.match(Tokens.TIDEN);
+        }
+        else {this.error("identifier expect");}
+        //check for : after <id> in both <sdecl> & <arrdecl>
+        if(this.next.getTokenID() == Tokens.TCOLN)
+        {
+            //since next is wont have a lexeme we just add the colon in manually
+            r.addToAttribute(":");
+            this.match(Tokens.TCOLN);
+        }
         //check for <sdecl>
         if(this.next.getTokenID() == Tokens.TINTG || this.next.getTokenID() == Tokens.TREAL || this.next.getTokenID() == Tokens.TBOOL)
         {
-            //generate next valid token
-            this.nextToken();
+            //match & consume keyword
+            this.match(this.next.getTokenID());
             decl = new STNode(NodeValue.NSDECL);
+            decl.setRecord(r);
         }
         //check for <arrdecl>
         else if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            //generate next valid token
-            this.nextToken();
+            //add the lexeme of our lookahead token to our SymbolEntry
+            r.addToAttribute(this.next.getLexeme());
+            //match & consume our lookahead token
+            this.match(Tokens.TIDEN);
             decl = new STNode(NodeValue.NARRD);
+            decl.setRecord(r);
         }
         //check if lookahead is , if it is then we can satisfy , <dlist>
         if(this.next.getTokenID() == Tokens.TCOMA)
         {
-            this.nextToken();
+            //lookahead doesn't have a lexeme for TCOMA so add the comma to the record manually
+            r.addToAttribute(",");
+            //match & consume our lookahead
+            this.match(Tokens.TCOMA);
+            decl.setRecord(r);
             dlist = this.dlist();
             return new STNode(NodeValue.NDLIST, decl, dlist);
         }

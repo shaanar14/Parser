@@ -6,10 +6,6 @@
         A HashMap object is used to match the enum to its ID.
  */
 
-import java.util.HashMap;
-import java.util.Map;
-
-//TODO possibly refactor and remove (int) which means I can remove the map logic
 enum Tokens
 {
     // Token value for end of file

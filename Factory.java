@@ -14,68 +14,28 @@ public class Factory
     //Postconditions: return a Token object for an identifier token, if lex matches a keyword then a Token object for that keyword is returned
     public static Token identifierToken(StringBuilder lex, int lineNo, int colNo)
     {
-        //Token t = new Token(lex.toString(), lineNo, colNo);
-        //Will either give us
-        Tokens type = keywordMatch(lex);
-        //t.setTokenID(type);
-        return new Token(type, lex.toString(), lineNo, colNo);
-    }
-
-    //Helper function for indentifierMachine() to match keywords
-    //Preconditions: lex.length() != 0
-    //Postconditions: checks to see if lex is equal to a keyword and returns its ID otherwise returns -1
-    private static Tokens keywordMatch(StringBuilder lex)
-    {
-        for(Keywords k : Keywords.values())
+        //String array of the CD20 keywords
+        String[] k = {"constants", "types","is", "arrays","main","begin","end","array",
+                      "of","func","void","const","int","real","bool","for","repeat","until",
+                      "if","else","input","print","println","return","not","and","or","xor","true","false"};
+        //Array of specific enum values from Tokens that are classified as tokens
+        Tokens[] t = {Tokens.TCNST, Tokens.TTYPS, Tokens.TTTIS, Tokens.TARRS, Tokens.TMAIN, Tokens.TBEGN,
+                      Tokens.TTEND, Tokens.TARAY, Tokens.TTTOF, Tokens.TFUNC, Tokens.TVOID, Tokens.TCONS,
+                      Tokens.TINTG, Tokens.TREAL, Tokens.TBOOL, Tokens.TTFOR, Tokens.TREPT, Tokens.TUNTL,
+                      Tokens.TIFTH, Tokens.TELSE, Tokens.TINPT, Tokens.TPRIN, Tokens.TPRLN, Tokens.TRETN,
+                      Tokens.TNOTT, Tokens.TTAND, Tokens.TTTOR, Tokens.TTXOR, Tokens.TTRUE, Tokens.TFALS};
+        String match = lex.toString();
+        if(match.equals("CD20")) return new Token(Tokens.TCD20, "", lineNo, colNo);
+        //length of k and t are the same which is 30
+        for(int i = 0; i < k.length; i++)
         {
-            //should handle/enforce CD is uppercase
-            if(k == Keywords.K0 && lex.toString().equals(String.valueOf(k)))
+            if(match.equalsIgnoreCase(k[i]))
             {
-                return Tokens.TCD20;
-            }
-            //if the keyword is not CD20 then handle it as any of the other keywords
-            else if(lex.toString().equalsIgnoreCase(String.valueOf(k)))
-            {
-                //ID for the token is calculated by the index of the keyword matched in the Keywords enum + 1
-                return switch (k)
-                {
-                    case K1  -> Tokens.TCNST;
-                    case K2  -> Tokens.TTYPS;
-                    case K3  -> Tokens.TTTIS;
-                    case K4  -> Tokens.TARRS;
-                    case K5  -> Tokens.TMAIN;
-                    case K6  -> Tokens.TBEGN;
-                    case K7  -> Tokens.TTEND;
-                    case K8  -> Tokens.TARAY;
-                    case K9  -> Tokens.TTTOF;
-                    case K10 -> Tokens.TFUNC;
-                    case K11 -> Tokens.TVOID;
-                    case K12 -> Tokens.TCONS;
-                    case K13 -> Tokens.TINTG;
-                    case K14 -> Tokens.TREAL;
-                    case K15 -> Tokens.TBOOL;
-                    case K16 -> Tokens.TTFOR;
-                    case K17 -> Tokens.TREPT;
-                    case K18 -> Tokens.TUNTL;
-                    case K19 -> Tokens.TIFTH;
-                    case K20 -> Tokens.TELSE;
-                    case K21 -> Tokens.TINPT;
-                    case K22 -> Tokens.TPRIN;
-                    case K23 -> Tokens.TPRLN;
-                    case K24 -> Tokens.TRETN;
-                    case K25 -> Tokens.TNOTT;
-                    case K26 -> Tokens.TTAND;
-                    case K27 -> Tokens.TTTOR;
-                    case K28 -> Tokens.TTXOR;
-                    case K29 -> Tokens.TTRUE;
-                    case K30 -> Tokens.TFALS;
-                    //if all else fails return identifier token type
-                    default -> Tokens.TIDEN;
-                };
+                return new Token(t[i], "", lineNo, colNo);
             }
         }
-        //if none of the above succeeds then return an identifier token type
-        return Tokens.TIDEN;
+        //if all else fails return identifier token
+        return new Token(Tokens.TIDEN, lex.toString(), lineNo, colNo);
     }
 
     //Generates integer literal tokens

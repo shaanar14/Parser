@@ -1,5 +1,5 @@
 /*
-    COMP3290 Project
+    COMP3290 Project 2
     Author: Shaan Arora, C3236359
     OutputController Class
         Contains all functionality to create a listing file, generate the output for all structures of the compiler and report errors
@@ -153,7 +153,6 @@ public class OutputController
         } while(!ls.isEoF());
     }
 
-    //TODO test with temp and without temp
     public void outputSyntaxTree(SyntaxTree st)
     {
         STNode temp = st.getRoot();

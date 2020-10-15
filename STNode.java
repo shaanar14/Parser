@@ -1,12 +1,13 @@
 /*
-    COMP3290 Project
+    COMP3290 Project 2
     Author: Shaan Arora, C3236359
     STNode Class
-        The core data type for the syntax tree which will contain a reference to a symbol table record and have reference to three children nodes
-        If each rule from the CD20 grammar, after it has been left factored which means ambiguity has been removed, child assignment works as follows:
-            If the rule contains three children then assign left, middle then right
-            If the rule contains two children use left and right
-            If the rule contains one child use the left
+    The core data structure for the abstract syntax tree which will contain a reference to a symbol table record, a NodeValue dictated by the grammar &
+        have reference to three children nodes.
+    If each rule from the CD20 grammar, after it has been left factored which means ambiguity has been removed, child assignment works as follows:
+        If the rule contains three children then assign left, middle then right
+        If the rule contains two children use left and right
+        If the rule contains one child use the left
  */
 
 public class STNode
@@ -89,7 +90,7 @@ public class STNode
     public NodeValue getNodeValue() {return this.nodeValue;}
 
     //Specific getter to retrieve the attribute of the node which is stored in a STNode's record
-    public String getAttribute() {return this.getRecord().getAttribute();}
+    public StringBuilder getAttribute() {return this.getRecord().getAttribute();}
 
     @Override
     //TODO test on a bigger syntax tree

@@ -2,15 +2,17 @@
     Project 2
     Author: Shaan Arora, C3236359
     SymbolEntry Class
-        Stores all relevant information regarding an entry in the symbol type such as line number, declaration status etc.
+    Core data structure for SymbolTable
+    Stores valuable information of things like variable declarations which then gets placed into a SymbolTable
+        for lookup during future compilation phases
  */
 
 public class SymbolEntry
 {
-    //TODO add value
     //Private member variables
+
     //Name of the entry
-    private String attribute;
+    private StringBuilder attribute;
     private int id;
     //Location of the attribute in the source code file
     private int lineNo, colNo;
@@ -21,7 +23,7 @@ public class SymbolEntry
 
     public SymbolEntry()
     {
-        this.attribute = "";
+        this.attribute = new StringBuilder();
         this.id = 0;
         this.lineNo = 0;
         this.colNo = 0;
@@ -29,17 +31,22 @@ public class SymbolEntry
         this.type = null;
     }
 
-    public SymbolEntry(String a)
+    public SymbolEntry(Tokens t)
     {
-        this.attribute = a;
+        this.type = t;
+        this.attribute = new StringBuilder();
         this.id = 0;
         this.lineNo = 0;
         this.colNo = 0;
         this.declared = false;
-        this.type = null;
     }
 
-    public void setAttribute(String a) {this.attribute = a;}
+    //Setters
+
+    public void setAttribute(StringBuilder a) {this.attribute = a;}
+
+    //Secondary setter for attribute so we can build the attribute as we parse
+    public void addToAttribute(String s) {this.attribute.append(s);}
 
     public void setID(int i) {this.id = i;}
 
@@ -51,7 +58,9 @@ public class SymbolEntry
 
     public void setType(Tokens type){this.type = type;}
 
-    public String getAttribute() {return this.attribute;}
+    //Getters
+
+    public StringBuilder getAttribute() {return this.attribute;}
 
     public int getID() {return this.id;}
 
