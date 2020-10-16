@@ -21,7 +21,8 @@ public class LexicalScanner
     //Stores the number of lines in a file, the column number and to mark which char we are currently up to when tokenizing the input StringBuilder
     //  count is used for keep tracking of how many characters are currently in an output line
     //  colNo is reset back to 0 every time a new line character in input is found
-    private int lineNo, colNo, pos, count;
+    //  curr is used for nextToken() and represents the index of an object in stream
+    private int lineNo, colNo, pos, count, curr;
     //Marks if we have reach the end of the file
     private boolean eof;
     private OutputController output;
@@ -38,6 +39,7 @@ public class LexicalScanner
         this.colNo = 1;
         this.pos = 0;
         this.count = 0;
+        this.curr = 0;
         this.eof = false;
         this.output = new OutputController();
     }
@@ -434,9 +436,16 @@ public class LexicalScanner
                 //maybe call findSLComment at the end of every new line
                 if(c == '\n')
                 {
-                    this.lineNo++;
-                    //reset column number for the new line
-                    this.colNo = 0;
+                    if(this.lookUp(i+1) == '\u001a')
+                    {
+                        this.pos = i+1;
+                    }
+                    else
+                    {
+                        this.lineNo++;
+                        //reset column number for the new line
+                        this.colNo = 0;
+                    }
                 }
             }
             //End of file use case since I added a special character to mark the end of the file
@@ -448,7 +457,7 @@ public class LexicalScanner
                 temp = new Token(Tokens.T_EOF, "", this.lineNo, this.colNo);
                 //we are at the end of the file so we reset the counters
                 //this should help if we need to go back to the beginning of the file and regenerate tokens
-                this.pos = 0; this.lineNo = 0; this.colNo = 0;
+                //this.pos = 0; this.lineNo = 0; this.colNo = 0;
                 //break statement so we can immediately return the token
                 break;
             }
@@ -463,7 +472,13 @@ public class LexicalScanner
     //Returns the next valid token from a given source file
     //Preconditions: LexicalScanner object declared and intialized and readFile() has been called
     //Postconditions: Returns the next valid token
-    public Token nextToken() {return this.getToken();}
+    public Token nextToken()
+    {
+        assert this.curr <= this.stream.size();
+        Token temp = this.stream.get(this.curr);
+        this.curr++;
+        return temp;
+    }
 
     //Print function to print a token
     //Preconditions: t != null
@@ -486,6 +501,17 @@ public class LexicalScanner
                 this.count = 0;
             }
         }
+    }
+
+    //Tokenizes the entire source code file read in which will also display all Token objects to terminal
+    public void tokenize()
+    {
+        do
+        {
+            Token temp = this.getToken();
+            this.printToken(temp);
+            //if(temp.getTokenID() == 62) this.lexicalErrors.add(temp);
+        } while(!this.isEoF());
     }
 
     //Reads the entire file called fileName and stores all of it in a StringBuilder object with a special end of file character at the very end

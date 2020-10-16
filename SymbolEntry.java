@@ -15,7 +15,9 @@ public class SymbolEntry
     private StringBuilder attribute;
     private int id;
     //Location of the attribute in the source code file
-    private int lineNo, colNo;
+    //array acting as a pair of integer values
+    //index 0 will store the line number and index 1 will store the colum number
+    private final int[] location;
     //Whether or not the entry as been declared
     private boolean declared;
     //the type of the entry i.e func, array etc
@@ -25,8 +27,7 @@ public class SymbolEntry
     {
         this.attribute = new StringBuilder();
         this.id = 0;
-        this.lineNo = 0;
-        this.colNo = 0;
+        this.location = new int[2];
         this.declared = false;
         this.type = null;
     }
@@ -36,8 +37,7 @@ public class SymbolEntry
         this.type = t;
         this.attribute = new StringBuilder();
         this.id = 0;
-        this.lineNo = 0;
-        this.colNo = 0;
+        this.location = new int[2];
         this.declared = false;
     }
 
@@ -50,13 +50,17 @@ public class SymbolEntry
 
     public void setID(int i) {this.id = i;}
 
-    public void setLineNo(int lineNo) {this.lineNo = lineNo;}
+    public void setLineNo(int l) {this.location[0] = l;}
 
-    public void setColNo(int c) {this.colNo = c;}
+    public void setColNo(int c) {this.location[1] = c;}
 
     public void setDeclared(boolean dec) {this.declared = dec;}
 
     public void setType(Tokens type){this.type = type;}
+
+    //Specific setter so we can update the line number and column number all at once
+
+    public void setLocation(int l, int c) {this.location[0] = l; this.location[1] = c;}
 
     //Getters
 
@@ -64,9 +68,11 @@ public class SymbolEntry
 
     public int getID() {return this.id;}
 
-    public int getLineNo() {return this.lineNo;}
+    public int getLineNo() {return this.location[0];}
 
-    public int getColNo() {return this.colNo;}
+    public int getColNo() {return this.location[1];}
+
+    public int[] getLocation() {return this.location;}
 
     public boolean isDeclared() {return this.declared;}
 

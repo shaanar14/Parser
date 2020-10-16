@@ -26,7 +26,7 @@ public class STNode
 
     public STNode()
     {
-        this.nodeValue = NodeValue.NPROG;
+        this.nodeValue = null;
         this.leftChild = null;
         this.middleChild = null;
         this.rightChild = null;
@@ -93,7 +93,6 @@ public class STNode
     public StringBuilder getAttribute() {return this.getRecord().getAttribute();}
 
     @Override
-    //TODO test on a bigger syntax tree
     public String toString()
     {
         StringBuilder nv = new StringBuilder();
