@@ -108,10 +108,8 @@ public class Token
     {
         for(String s : TPRINT)
         {
-<<<<<<< Updated upstream
-=======
-            //s.trim() will remove all whitespaces from s
->>>>>>> Stashed changes
+            //s.trim() will remove all whitespaces from any of the strings in TPRINT
+            //if we do not trim/remove whitespaces then we will never return a string from TPRINT
             //Return the original string from TPRINT because we want to include the white space
             if(this.getTokenID().toString().equals(s.trim())) {return s;}
         }
