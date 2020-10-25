@@ -22,6 +22,8 @@ public class SymbolEntry
     private boolean declared;
     //the type of the entry i.e func, array etc
     private Tokens type;
+    //TODO add base register and offset for code gen
+    //private final int[] stackLocation
 
     public SymbolEntry()
     {

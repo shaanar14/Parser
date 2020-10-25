@@ -6,6 +6,7 @@
  */
 
 import java.util.Hashtable;
+import java.util.LinkedList;
 
 public class SymbolTable
 {
@@ -16,31 +17,90 @@ public class SymbolTable
     //Doing this so we have direct access to this specific SymbolEntry without storing it in a HashTable
     private SymbolEntry program;
     //Hashtables are of Integer , SymbolTable Key Value pairs
-    //One for any global constants we find during parsing
+    //One store SymbolEntry objects for global constants, types or arrays found during parsing
     private Hashtable<Integer, SymbolEntry> globals;
-    //A simple list of Hashtables to capture all the functions found during parsing
-    private Hashtable<Integer, SymbolEntry> funcs;
-    //Another Hashtable for main which will have all statements found during parsing
-    private Hashtable<Integer, SymbolEntry> main;
+    //List of HashTables to help define scoping for SymbolEntries
+    //Function declarations & defintions come before main so they will come first in the list
+    private LinkedList<Hashtable<Integer, SymbolEntry>> scope;
+    //Integer to store the index of the current scope to make adding SymbolEntry objects into that scope easier
+    private int currentIndex;
 
     //Default Constructor
     public SymbolTable()
     {
         this.program = new SymbolEntry();
         this.globals = new Hashtable<>();
-        this.funcs = new Hashtable<>();
-        this.main = new Hashtable<>();
+        this.scope = new LinkedList<>();
+        this.currentIndex = 0;
     }
 
     //TODO Implement the following:
     //  void putConsts(Integer, Symbol Entry)
-    //  void putFuncs(Integer, Integer, SymbolEntry)
-    //  void putMain(Integer, SymbolEntry)
     //  SymbolEntry findConsts(Key) -> get(Key) Hashtable
-    //  SymbolEntry findFuncs(Key)  -> get(Key) from Hashtable
-    //  SymbolEntry findMain(Key)   -> get(Key) from Hashtable
+    //  openNewScope() -> this.scope.add(new HashTable<Integer, SymbolEntry>);
+    //  addToCurrentScope() -> integer set to the index of the newly created HashTable
+    //  closeCurrentScope() -> reset the counter
+    //  putCurrentScope()
+    //  findCurrentScope()
+    //  findEntry()
     //  For find functions use containsKey(Key) to check if the key does actually exist
     //      becaues i dont want get(Key) to return null
+
+
+    //Operational Methods
+
+    //Place a SymbolEntry into the globals HashTable
+    //Preconditions:  SymbolTable has been declared & initlaized
+    //Postconditions: Puts the int i as the key and SymbolEntry object as the vaue into the global HashTable
+    public void putGlobals(int i, SymbolEntry record)
+    {
+        this.globals.put(i, record);
+    }
+
+    //Check to see if the record is contained in the globals HashTable
+    //Preconditions:  SymbolTable has been declared & intialized, record != null
+    //Postconditions: Returns true if the SymbolEntry object passed in does exist in the globals HashtTable
+    public boolean findGlobals(SymbolEntry record)
+    {
+        return this.globals.containsValue(record);
+    }
+
+    //Preconditions:
+    //Postconditions: Returns the SymbolEntry object that is associated with the key passed in from the globals HashTable
+    public SymbolEntry getRecordGlobals(int key)
+    {
+        //Ensure that the key passed in does actually exist in the table
+        assert this.globals.containsKey(key);
+        //Return the SymbolEntry object that has the key passed in
+        return this.globals.get(key);
+    }
+
+    //TODO test
+    //Preconditions:  SymbolTable has been declared & initialized
+    //Postconditions: Creates a new HashTable object and places it into the list to act as a new scope
+    public void createNewScope()
+    {
+        //Create a temp HashTable object for the scope
+        Hashtable<Integer, SymbolEntry> newScope = new Hashtable<>();
+        //Add temp table to the list of scopes
+        this.scope.add(newScope);
+        //Assign the index of the new HashTable to currentIndex
+        this.currentIndex = this.scope.indexOf(newScope);
+    }
+
+    //Preconditions:  SymbolTable has been declared & initialized
+    //Postconditions: Places the int and SymbolEntry passed in into the current HashTable which is acting as the current scope
+    public void putToCurrentScope(int i, SymbolEntry record)
+    {
+        this.scope.get(this.currentIndex).put(i, record);
+    }
+
+    //Preconditions:  SymbolTable has been declared & initialized
+    //Postconditions: Returns true if the record passed in does exist in the current HashTable which is acting as the current scope
+    public boolean findInCurrentScope(SymbolEntry record)
+    {
+        return this.scope.get(this.currentIndex).containsValue(record);
+    }
 
 
     //Setters
@@ -53,13 +113,13 @@ public class SymbolTable
     //Postconditions: Assigns the HashTable object c to the private member variable consts
     public void setGlobals(Hashtable<Integer, SymbolEntry> c) {this.globals = c;}
 
-    //Preconditions:  SymbolTable has been declared and intialized
-    //Postconditions: Assigns the HashTable object f to the private member variable funcs
-    public void setFuncs(Hashtable<Integer, SymbolEntry> f) {this.funcs = f;}
+    //Preconditions:
+    //Postconditions:
+    public void setScope(LinkedList<Hashtable<Integer, SymbolEntry>> s) {this.scope = s;}
 
-    //Preconditions:  SymbolTable has been declared and intialized
-    //Postconditions: Assigns the HashTable object m to the private member variable main
-    public void setMain(Hashtable<Integer, SymbolEntry> m) {this.main = m;}
+    //Preconditions:
+    //Postconditions:
+    public void setCurrentIndex(int i) {this.currentIndex = i;}
 
     //Getters
 
@@ -71,11 +131,11 @@ public class SymbolTable
     //Postconditions: Returns the HashTable object of the member variable consts
     public Hashtable<Integer, SymbolEntry> getGlobals() {return this.globals;}
 
-    //Preconditions:  SymbolTable has been declared and intialized
-    //Postconditions: Returns the HashTable object of the member variable funcs
-    public Hashtable<Integer, SymbolEntry> getFuncs() {return this.funcs;}
+    //Preconditions
+    //Postconditions
+    public LinkedList<Hashtable<Integer, SymbolEntry>> getScope() {return this.scope;}
 
-    //Preconditions:  SymbolTable has been declared and intialized
-    //Postconditions: Returns the HashTable object of the member variable main
-    public Hashtable<Integer, SymbolEntry> getMain() {return this.main;}
+    //Preconditions:
+    //Postconditions:
+    public int getCurrentIndex() {return this.currentIndex;}
 }

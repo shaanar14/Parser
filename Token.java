@@ -108,10 +108,8 @@ public class Token
     {
         for(String s : TPRINT)
         {
-            //Remove white space so we can properly match to the token ID
-            String t = s.strip();
             //Return the original string from TPRINT because we want to include the white space
-            if(this.getTokenID().toString().equals(t)) {return s;}
+            if(this.getTokenID().toString().equals(s.trim())) {return s;}
         }
         return "";
     }
