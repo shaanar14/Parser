@@ -20,7 +20,8 @@ public class SyntaxTree
     private Token next;
     //OutputController object for errors & listings
     private OutputController output;
-    //Symbol Table object?
+    //Symbol Table object
+    private SymbolTable table;
 
     //Default Constructor
     public SyntaxTree()
@@ -29,6 +30,7 @@ public class SyntaxTree
         this.scanner = new LexicalScanner();
         this.next = new Token();
         this.output = new OutputController();
+        this.table = new SymbolTable();
     }
 
     //Only want this function to be public as this will just recursively generate the tree for us from the root node down
@@ -1639,6 +1641,9 @@ public class SyntaxTree
     //Postconditions: The OutputController object of the current SyntaxTree object that is used for errors is assigned the value of oc
     public void setOutput(OutputController oc) {this.output = oc;}
 
+    //
+    public void setTable(SymbolTable st) {this.table = st;}
+
     //Getters
 
     //Preconditions: SyntaxTree object has been declared and initialized
@@ -1656,4 +1661,6 @@ public class SyntaxTree
     //Preconditions: SyntaxTree object has been declared and initialized
     //Postconditions: Returns the OutputController of the SyntaxTree that is being used for handling and displaying errors
     public OutputController getOutput() {return this.output;}
+
+    public SymbolTable getTable() {return this.table;}
 }

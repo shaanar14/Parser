@@ -35,5 +35,7 @@ public class Parser
         //display the abstract syntax tree created
         this.tree.outputTree();
         this.tree.getOutput().generateListingFile("listing.txt");
+        //Update the symbol table of the parser after it has been used during AST generation
+        this.symbolTable = this.tree.getTable();
     }
 }
