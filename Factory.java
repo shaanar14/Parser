@@ -64,8 +64,8 @@ public class Factory
         switch(c)
         {
             case ',': return new Token(Tokens.TCOMA, "", lineNo, colNo);
-            case '[': return new Token(Tokens.TRBRK, "", lineNo, colNo);
-            case ']': return new Token(Tokens.TLBRK, "", lineNo, colNo);
+            case '[': return new Token(Tokens.TLBRK, "", lineNo, colNo);
+            case ']': return new Token(Tokens.TRBRK, "", lineNo, colNo);
             case '(': return new Token(Tokens.TLPAR, "", lineNo, colNo);
             case ')': return new Token(Tokens.TRPAR, "", lineNo, colNo);
             case ':': return new Token(Tokens.TCOLN, "", lineNo, colNo);

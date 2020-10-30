@@ -26,7 +26,7 @@ public class Parser
         this.scanner.readFile(fileName);
         //Tokenize source file
         this.scanner.tokenize();
-        System.out.print("\n\nPreorder Traversal\n");
+        System.out.print("\n\nPreorder Traversal:\n");
         //send the LexicalScanner object to the SyntaxTree object
         this.tree.setScanner(this.scanner);
         this.tree.getOutput().setInput(this.scanner.getInput());
