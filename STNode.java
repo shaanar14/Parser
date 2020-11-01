@@ -69,6 +69,16 @@ public class STNode
         this.record = new SymbolEntry();
     }
 
+    //Parameter Constructor for SymbolEntry
+    public STNode(NodeValue nv, SymbolEntry r)
+    {
+        this.nodeValue = nv;
+        this.record = r;
+        this.leftChild = null;
+        this.middleChild = null;
+        this.rightChild = null;
+    }
+
     public void setRecord(SymbolEntry r) {this.record = r;}
 
     public void setLeftChild(STNode lc) {this.leftChild = lc;}

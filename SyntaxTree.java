@@ -5,7 +5,7 @@
     An abstract syntax tree data structure to represent the underlying structure of a CD20 program for future phases of compilation.
  */
 
-import java.util.Arrays;
+import org.w3c.dom.Node;
 
 //TODO add symbol table and error recovery logic
 public class SyntaxTree
@@ -92,13 +92,13 @@ public class SyntaxTree
             else
             {
                 int[] loc = {this.next.getLineNo(), this.next.getColNo()};
-                this.error("Program name expected", loc);
+                this.errorSyntax("Program name expected", loc);
             }
         }
         else
         {
             int[] loc = {this.next.getLineNo(), this.next.getColNo()};
-            this.error("CD20 keyword expected", loc);
+            this.errorSyntax("CD20 keyword expected", loc);
         }
         STNode g = this.globals();
         STNode f = this.funcs();
@@ -216,13 +216,13 @@ public class SyntaxTree
         }
         else
         {
-            this.error("variable expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("variable expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //match is keyword
         if(!this.match(Tokens.TTTIS))
         {
-            this.error("is keyword expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("is keyword expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         STNode type = new STNode();
@@ -242,12 +242,13 @@ public class SyntaxTree
             //match identifier token for <structid>
             if(this.next.getTokenID() == Tokens.TIDEN)
             {
-                r.addToAttribute(this.next.getLexeme());
+                //r.addToAttribute(this.next.getLexeme());
+                //TODO semantic check
                 this.match(Tokens.TIDEN);
             }
             else
             {
-                this.error("variable expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
+                this.errorSyntax("variable expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
                 this.nextToken();
             }
             type.setNodeValue(NodeValue.NATYPE);
@@ -258,7 +259,7 @@ public class SyntaxTree
             type.setLeftChild(this.fields());
             if(!this.match(Tokens.TTEND))
             {
-                this.error("end keyword expect", r.getLocation());
+                this.errorSyntax("end keyword expect", r.getLocation());
             }
             type.setNodeValue(NodeValue.NRTYPE);
         }
@@ -289,22 +290,29 @@ public class SyntaxTree
     //Rule: NARRD <arrdecl> ::= <id> : <typeid>
     private STNode arrdecl()
     {
+        SymbolEntry array = new SymbolEntry();
         //match & consume identifier token for <id>
-        if(!this.match(Tokens.TIDEN))
+        if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            this.error("Identifier required", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            array.addToAttribute(this.next.getLexeme());
+            array.setType(Tokens.TARAY);
+            array.setLocation(this.next.getLineNo(), this.next.getColNo());
+            this.match(Tokens.TIDEN);
         }
+        else {this.errorSyntax("Identifier required", new int[]{this.next.getLineNo(), this.next.getColNo()});}
         //match & consume identifier token for :
         if(!this.match(Tokens.TCOLN))
         {
-            this.error("colon required", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("colon required", new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
         //match & consume identifier token for <typeid>
+        //TODO semantic check to make sure that <typeid> has been declared already
         if(!this.match(Tokens.TIDEN))
         {
-            this.error("Identifier required", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("Identifier required", new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
-        return new STNode(NodeValue.NARRD);
+        //Return a new node with a value of NARRD and array as its record
+        return new STNode(NodeValue.NARRD, array);
     }
 
     //Rule: NMAIN  <mainbody> ::= main <slist> begin <stats> end CD20 <id>
@@ -313,30 +321,30 @@ public class SyntaxTree
         //match main keyword
         if(!this.match(Tokens.TMAIN))
         {
-            this.error("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
         STNode slist = this.slist();
         //match begin keyword
         if(!this.match(Tokens.TBEGN))
         {
-            this.error("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
         STNode stats = this.stats();
         //match end keyword
         if(!this.match(Tokens.TTEND))
         {
-            this.error("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
         //TODO Semantics; check if the follow TCD20 TIDEN matchs the SymbolEntry object program in SymbolTable
         //match CD20 keyword
         if(!this.match(Tokens.TCD20))
         {
-            this.error("CD20 keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("CD20 keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
         //match identifier token for <id> which needs to also match the symbol table entry for the same identifier token for the very first CD20 token
         if(!this.match(Tokens.TIDEN))
         {
-            this.error("program name missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("program name missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
         //Return a STNode object with the NodeValue NMAIN, slist as its left child & stats as its right child
         return new STNode(NodeValue.NMAIN, slist, stats);
@@ -374,10 +382,11 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
             r.addToAttribute(this.next.getLexeme());
+            r.setLocation(this.next.getLineNo(), this.next.getColNo());
             //match identifier token for <id>
             this.match(Tokens.TIDEN);
         }
-        else{this.error("variable not found",new int[]{this.next.getLineNo(), this.next.getColNo()});}
+        else{this.errorSyntax("variable not found",new int[]{this.next.getLineNo(), this.next.getColNo()});}
         this.match(Tokens.TCOLN);
         //14 for int , 15 for real and 16 for bool
         if(this.next.getTokenID() == Tokens.TINTG || this.next.getTokenID() == Tokens.TREAL || this.next.getTokenID() == Tokens.TBOOL)
@@ -388,7 +397,7 @@ public class SyntaxTree
             s.setRecord(r);
             return s;
         }
-        this.error("int or real or bool keyword not found", new int[]{this.next.getLineNo(), this.next.getColNo()});
+        this.errorSyntax("int or real or bool keyword not found", new int[]{this.next.getLineNo(), this.next.getColNo()});
         return new STNode();
     }
 
@@ -476,8 +485,7 @@ public class SyntaxTree
             //  stats will be the right child which cannot be an empty node
             return new STNode(NodeValue.NFUND, params, dlist, stats);
         }
-        int[] loc = {this.next.getLineNo(),this.next.getColNo()};
-        this.error("int or real or bool or void not found", loc);
+        this.errorSyntax("int or real or bool or void not found", new int[]{this.next.getLineNo(),this.next.getColNo()});
         return new STNode();
     }
 
@@ -527,19 +535,19 @@ public class SyntaxTree
             //match for identifier which is the start of both rules
             this.match(Tokens.TIDEN);
         }
-        else {this.error("identifier expect",new int[]{this.next.getLineNo(), this.next.getColNo()});}
+        else {this.errorSyntax("identifier expect",new int[]{this.next.getLineNo(), this.next.getColNo()});}
         //check for : after <id> in both <sdecl> & <arrdecl>
         if(this.next.getTokenID() == Tokens.TCOLN)
         {
             //since next is wont have a lexeme we just add the colon in manually
-            p.addToAttribute(":");
+            //p.addToAttribute(":");
             this.match(Tokens.TCOLN);
         }
-        else {this.error("colon expected", new int[]{this.next.getLineNo(), this.next.getColNo()});}
+        else {this.errorSyntax("colon expected", new int[]{this.next.getLineNo(), this.next.getColNo()});}
         //if our lookahead is an identifier token then we can satisfy the  rule <arrdecl>
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            p.addToAttribute(this.next.getLexeme());
+            //p.addToAttribute(this.next.getLexeme());
             //consume identifier
             this.match(Tokens.TIDEN);
             //<param> ::= <arrdecl>
@@ -554,11 +562,10 @@ public class SyntaxTree
             p.setType(this.next.getTokenID());
             //match and consume the keyword
             this.match(this.next.getTokenID());
-            sdecl = new STNode(NodeValue.NSDECL);
-            sdecl.setRecord(p);
+            sdecl = new STNode(NodeValue.NSDECL, p);
             return new STNode(NodeValue.NSIMP, sdecl);
         }
-        this.error("identifier or keyword expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
+        this.errorSyntax("identifier or keyword expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
         return new STNode();
     }
 
@@ -576,12 +583,12 @@ public class SyntaxTree
             r.addToAttribute(this.next.getLexeme());
             this.match(Tokens.TIDEN);
         }
-        else {this.error("identifier expect", new int[]{this.next.getLineNo(), this.next.getColNo()});}
+        else {this.errorSyntax("identifier expect", new int[]{this.next.getLineNo(), this.next.getColNo()});}
         //check for : after <id> in both <sdecl> & <arrdecl>
         if(this.next.getTokenID() == Tokens.TCOLN)
         {
             //since next is wont have a lexeme we just add the colon in manually
-            r.addToAttribute(":");
+            //r.addToAttribute(":");
             this.match(Tokens.TCOLN);
         }
         //check for <sdecl>
@@ -606,7 +613,7 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TCOMA)
         {
             //lookahead doesn't have a lexeme for TCOMA so add the comma to the record manually
-            r.addToAttribute(",");
+            //r.addToAttribute(",");
             //match & consume our lookahead
             this.match(Tokens.TCOMA);
             decl.setRecord(r);
@@ -636,7 +643,7 @@ public class SyntaxTree
                 //check for ; after <stat>
                 if(!this.match(Tokens.TSEMI))
                 {
-                    this.error("semi colon is missing", stat.getRecord().getLocation());
+                    this.errorSyntax("semi colon is missing", stat.getRecord().getLocation());
                 }
                 if(this.next.getTokenID() == Tokens.TTEND) return stat;
                 //recursive call
@@ -652,7 +659,7 @@ public class SyntaxTree
                 //check for ; after <stat>
                 if(!this.match(Tokens.TSEMI))
                 {
-                    this.error("semi colon is missing", stat.getRecord().getLocation());
+                    this.errorSyntax("semi colon is missing", stat.getRecord().getLocation());
                 }
                 if(this.next.getTokenID() == Tokens.TTEND || this.next.getTokenID() == Tokens.TCD20) return stat;
                 //recursive call/recursive rule
@@ -666,7 +673,7 @@ public class SyntaxTree
                 //check for ; after <stat>
                 if(!this.match(Tokens.TSEMI))
                 {
-                    this.error("semi colon is missing", stat.getRecord().getLocation());
+                    this.errorSyntax("semi colon is missing", stat.getRecord().getLocation());
                 }
                 if(this.next.getTokenID() == Tokens.TTEND) return new STNode(NodeValue.NSTATS, stat);
                 //recursive call
@@ -680,7 +687,7 @@ public class SyntaxTree
                 //match & consume ; after <stat>
                 if(!this.match(Tokens.TSEMI))
                 {
-                    this.error("semi colon is missing", stat.getRecord().getLocation());
+                    this.errorSyntax("semi colon is missing", stat.getRecord().getLocation());
                 }
                 if(this.next.getTokenID() == Tokens.TTEND) return stat;
                 //recursive call
@@ -789,7 +796,7 @@ public class SyntaxTree
             call.setRecord(r);
             return call;
         }
-        this.error("incomplete statement", r.getLocation());
+        this.errorSyntax("incomplete statement", r.getLocation());
         STNode s = new STNode();
         s.setRecord(r);
         return s;
@@ -802,13 +809,13 @@ public class SyntaxTree
         //match & consume for keyword
         if(!this.match(Tokens.TTFOR))
         {
-            this.error("for keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("for keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //match & consume left parentheses for (
         if(!this.match(Tokens.TLPAR))
         {
-            this.error("( is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("( is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //satisfy <asgnlist> rule
@@ -816,7 +823,7 @@ public class SyntaxTree
         //match & consume semi colon inbetween <asgnlist> & <bool>
         if(!this.match(Tokens.TSEMI))
         {
-            this.error("; is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("; is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //satisfy <bool> rule
@@ -824,7 +831,7 @@ public class SyntaxTree
         //match & consume right parenthses for )
         if(!this.match(Tokens.TRPAR))
         {
-            this.error(") is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax(") is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //satisfy <stats> rule
@@ -832,7 +839,7 @@ public class SyntaxTree
         //match & consume end keyword
         if(!this.match(Tokens.TTEND))
         {
-            this.error("end keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("end keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //Return a node for NodeValue NFOR, alist as left child, bool as middle child and stats as right child
@@ -846,13 +853,13 @@ public class SyntaxTree
         //match & consume repeat keyword
         if(!this.match(Tokens.TREPT))
         {
-            this.error("repeat keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("repeat keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //match & consume left parentheses for (
         if(!this.match(Tokens.TLPAR))
         {
-            this.error("( is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("( is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //satisfy <asgnlist> rule
@@ -860,7 +867,7 @@ public class SyntaxTree
         //match & consume right parenthses for )
         if(!this.match(Tokens.TRPAR))
         {
-            this.error(") is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax(") is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //satisfy <stats> rule
@@ -868,7 +875,7 @@ public class SyntaxTree
         //match & consume until keyword
         if(!this.match(Tokens.TUNTL))
         {
-            this.error("until keyword is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("until keyword is missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //satisfy <bool> rule
@@ -951,7 +958,7 @@ public class SyntaxTree
                 a.setNodeValue(NodeValue.NDVEQ);
                 break;
             default:
-                this.error("assignment operator missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+                this.errorSyntax("assignment operator missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
                 this.nextToken();
                 break;
         }
@@ -973,7 +980,7 @@ public class SyntaxTree
         }
         else
         {
-            this.error("if keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("if keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //match & consume left parentheses for (
@@ -983,7 +990,7 @@ public class SyntaxTree
         }
         else
         {
-            this.error("( missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("( missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //generate node and satisfy <bool> rule
@@ -995,7 +1002,7 @@ public class SyntaxTree
         }
         else
         {
-            this.error("( missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            this.errorSyntax("( missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.nextToken();
         }
         //generate node and satisfy <stats> rule
@@ -1138,8 +1145,8 @@ public class SyntaxTree
         //check for left bracket; <id> [
         if(this.next.getTokenID() == Tokens.TLBRK)
         {
-            //generate the next valid token
-            this.nextToken();
+            //match and consume lookahead
+            this.match(Tokens.TLBRK);
             expr = this.expr();
             //match & check for ] in <expr> ]
             this.match(Tokens.TRBRK);
@@ -1255,7 +1262,7 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TEQEQ || this.next.getTokenID() == Tokens.TNEQL ||
            this.next.getTokenID() == Tokens.TGRTR || this.next.getTokenID() == Tokens.TGEQL ||
            this.next.getTokenID() == Tokens.TLEQL || this.next.getTokenID() == Tokens.TLESS)
-        {;
+        {
             relop = this.relop();
             //We want the nodes generated by both <expr> rules in <expr> <relop> <expr> to be the left and right child of relop respectively
             relop.setLeftChild(exprL);
@@ -1389,15 +1396,22 @@ public class SyntaxTree
         fact = this.fact();
         if(this.next.getTokenID() == Tokens.TSTAR || this.next.getTokenID() == Tokens.TDIVD || this.next.getTokenID() == Tokens.TPERC)
         {
+            //update the symbol entry
             r.setType(this.next.getTokenID());
             r.setLocation(this.next.getLineNo(), this.next.getColNo());
+            STNode node = new STNode();
+            //assign node a node value based on the lookahead token
+            if(this.next.getTokenID() == Tokens.TSTAR) node.setNodeValue(NodeValue.NMUL);
+            if(this.next.getTokenID() == Tokens.TDIVD) node.setNodeValue(NodeValue.NDIV);
+            if(this.next.getTokenID() == Tokens.TPERC) node.setNodeValue(NodeValue.NMOD);
             //match & consume lookahead
             this.match(this.next.getTokenID());
+            //satisfy <term> rule
             term = this.term();
             fact.setRecord(r);
-            if(this.next.getTokenID() == Tokens.TSTAR) return new STNode(NodeValue.NMUL, term, fact);
-            if(this.next.getTokenID() == Tokens.TDIVD) return new STNode(NodeValue.NDIV, term, fact);
-            if(this.next.getTokenID() == Tokens.TPERC) return new STNode(NodeValue.NMOD, term, fact);
+            node.setLeftChild(term);
+            node.setRightChild(fact);
+            return node;
         }
         //epsilon path in the left factored rules
         return fact;
@@ -1459,33 +1473,32 @@ public class SyntaxTree
         //check for float literal token
         if(this.next.getTokenID() == Tokens.TFLIT)
         {
-            r.setType(Tokens.TINTG);
-            this.match(Tokens.TILIT);
-            STNode t = new STNode(NodeValue.NILIT);
-            t.setRecord(r);
-            return t;
+            //store the details of the float literal in a SymbolEntry object
+            r.addToAttribute(this.next.getLexeme());
+            r.setType(Tokens.TFLIT);
+            //match & consume lookahead token
+            this.match(Tokens.TFLIT);
+            //return a node with NFLIT node value and r as its symbol record
+            return new STNode(NodeValue.NFLIT, r);
         }
         //check for true keyword token
         if(this.next.getTokenID() == Tokens.TTRUE)
         {
             r.setType(Tokens.TTRUE);
             this.match(Tokens.TTRUE);
-            STNode t = new STNode(NodeValue.NTRUE);
-            t.setRecord(r);
-            return t;
+            return new STNode(NodeValue.NTRUE, r);
         }
         //check for false keyword token
         if(this.next.getTokenID() == Tokens.TFALS)
         {
             r.setType(Tokens.TFALS);
             this.match(Tokens.TFALS);
-            STNode t = new STNode(NodeValue.NFALS);
-            t.setRecord(r);
-            return t;
+            return new STNode(NodeValue.NFALS, r);
         }
         //check for ( in the ( <bool> ) rule
         if(this.next.getTokenID() == Tokens.TLPAR)
         {
+            //TODO add error checking
             this.match(Tokens.TLPAR);
             STNode b = this.bool();
             //check for ) in ( <bool> )
@@ -1506,17 +1519,14 @@ public class SyntaxTree
             if(this.next.getTokenID() == Tokens.TLBRK)
             {
                 v.setNodeValue(NodeValue.NARRV);
-                r.addToAttribute("[");
                 //match & consume the lookahead token
                 this.match(Tokens.TLBRK);
                 STNode e = this.expr();
-                r.addToAttribute("]");
                 //now match the ] and .
                 this.match(Tokens.TRBRK);
-                r.addToAttribute(".");
                 this.match(Tokens.TDOTT);
-                r.addToAttribute(this.next.getLexeme());
                 //match the <id> at the end
+                //TODO semantic check to ensure that this id matches with array declaration in globals
                 this.match(Tokens.TIDEN);
                 v.setRecord(r);
                 //return the node generated by <expr> with a NARRV node as its left child
@@ -1600,12 +1610,17 @@ public class SyntaxTree
     }
 
     //Message style error reporting function
-    private void error(String s, int[] location)
+    private void errorSyntax(String s, int[] location)
     {
-        String error = String.format("Line %d, Col %d: Syntax Error;  %s\n", location[0], location[1], s);
+        String error = String.format("Syntax Error at line %d, col %d:  %s\n", location[0], location[1], s);
         this.getOutput().addSyntaxError(error);
     }
 
+    /*private void errorSemantic(String s, int[] location)
+        String error = String.format("Semantic Error at line %d, col %d:  %s\n", location[0], location[1], s);
+        this.getOutput().addSyntaxError(error);
+
+    */
     //Setters
 
     //Preconditions: SyntaxTree object has been declared and initialized

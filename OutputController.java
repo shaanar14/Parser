@@ -11,7 +11,8 @@ import java.util.ArrayList;
 
 public class OutputController
 {
-    //Member Variables
+    //Private Member Variables
+
     //The file that has been read which is stored as a StringBuilder object by a LexicalScanner object
     private StringBuilder input;
     //Current line number, used for when writing the listing file with the line number at the start of each line
@@ -20,25 +21,40 @@ public class OutputController
     private ArrayList<Token> tokenStream;
     //Stores all Token objects that classify as a lexical error so after the program listing we can output them all with their associated line number
     //  this will store Token objects of Tokens enum type TUNDF
-    private ArrayList<Token> lexicalErrors;
+    private StringBuilder lexicalErrors;
+    //Count of how many lexical errors were found
+    private int totalLexicalErrors;
     //StringBuilder object that will store syntax errors sent by a SyntaxTree object as String
-    private StringBuilder msgSyntaxErrors;
+    private StringBuilder syntaxErrors;
+    //Counter for the number of syntax tree nodes and their associated attribute on a single output line
     private int syntaxOutputCount;
+    //Total number of syntax errors found
     private int totalSyntaxErrors;
+    //StringBuilder object to collect and store semantic errors sent by a SyntaxTree during parsing since semantic checking is done during parsing
+    private StringBuilder semanticErrors;
+    //Total number of semantic errors found
+    private int totalSemanticErrors;
+
 
     //Default Constructor
     public OutputController()
     {
         this.input = new StringBuilder();
         this.currentLineNo = 1;
+        //Lexical related private member variables
         this.tokenStream = new ArrayList<>();
-        this.lexicalErrors = new ArrayList<>();
-        this.msgSyntaxErrors = new StringBuilder();
+        this.lexicalErrors = new StringBuilder();
+        this.totalLexicalErrors = 0;
+        //Syntax related private member variables
+        this.syntaxErrors = new StringBuilder();
         this.syntaxOutputCount = 0;
         this.totalSyntaxErrors = 0;
+        //Semantic related private member variables
+        this.semanticErrors = new StringBuilder();
+        this.totalSemanticErrors = 0;
     }
 
-    //Preconditions: LexicalScanner & OutputController object have been declared and initialized.
+    //Preconditions:  LexicalScanner & OutputController object have been declared and initialized.
     //                  readFile() call from the LexicalScanner object to read the source file
     //                  setInput() with the LexicalScanner object getInput() call as its parameter to populate the OutputController objects input private member variable
     //Postconditions: Creates a file with the name of which is whatever the value of fileName is and then writes the original source code to that file
@@ -54,29 +70,26 @@ public class OutputController
             //the String version of that StringBuilder object is written to the file created above
             String output = this.augmentInput().toString();
             fw.write(output);
-            //if we have found lexical errors then write them
-            if(!this.getLexicalErrors().isEmpty())
+            //If no errors have been found at all
+            if(this.totalLexicalErrors == 0 && this.totalSyntaxErrors == 0 && this.totalSemanticErrors == 0)
+            {
+                fw.write("\n\nNo errors found");
+            }
+            else
             {
                 //write the error tokens at the end of the file
-                fw.write("\n\nLexical Errors Found (" + this.getLexicalErrors().size() + "):\n");
-                //StringBuilder object will hold a formatted String based on each error token so we can write them all at once
-                StringBuilder errors = new StringBuilder();
-                //For every Token object in that is classified as a lexical error we write the errors at the end of the file
-                for (Token t : this.getLexicalErrors())
-                {
-                    errors.append(String.format("Line %d, Column %d: %s\n", t.getLineNo(), t.getColNo(), t.getLexeme()));
-                }
+                fw.write("\n\nLexical Errors Found (" + this.totalLexicalErrors + "):\n");
                 //Write formatted error message to the listing file
-                fw.write(errors.toString());
+                fw.write(this.lexicalErrors.toString());
+                //Display a heading for the syntax errors found and how many were found during parsing
+                fw.write("\nSyntax Errors Found (" + this.totalSyntaxErrors + "):\n");
+                //write all syntax errors to the listing file
+                fw.write(this.syntaxErrors.toString());
+                //Display a heading for the semantic errors found and how many were found during parsing
+                fw.write("\nSemantic Errors Found (" + this.totalSemanticErrors + "):\n");
+                //write all semantic errors to the listing file
+                fw.write(this.semanticErrors.toString());
             }
-            else {fw.write("\n\nLexical Errors Found (0)");}
-            if(this.totalSyntaxErrors != 0)
-            {
-                //int totalErrors = Math.max(this.msgSyntaxErrors.length(), this.nodeSyntaxErrors.size());
-                fw.write("\n\nSyntax Errors Found (" + this.totalSyntaxErrors + "):\n");
-                fw.write(this.msgSyntaxErrors.toString());
-            }
-            else {fw.write("\nSyntax Errors Found (0)");}
             fw.close();
         }
         catch (IOException e) {e.printStackTrace();}
@@ -125,18 +138,6 @@ public class OutputController
         return output;
     }
 
-    //Preconditions:
-    //Postconditions: Reports the lexical errors to the command line
-    public void reportLexicalErrors()
-    {
-        assert !this.getLexicalErrors().isEmpty();
-        System.out.println("Lexical Errors:");
-        for(Token t : this.getLexicalErrors())
-        {
-            System.out.printf("%d %s\n", t.getLineNo(), t.toString());
-        }
-    }
-
     //Preconditions: ls has been declared & initialized, readFile() has been called on that object
     //Postconditions: Outputs the LexicalScanner object passed in to the terminal as per the specs of assignment 1
     public void outputLexicalScanner(LexicalScanner ls)
@@ -146,14 +147,18 @@ public class OutputController
         ls.tokenize();
     }
 
+    //Preconditions:  st.getRoot() != null, if the root node is null then nothing can be displayed
+    //Postconditions: Displays the Abstract Syntax Tree passed in to the terminal
     public void outputSyntaxTree(SyntaxTree st)
     {
+        assert st.getRoot() != null : "No Abstract Syntax Tree to display";
         STNode temp = st.getRoot();
         this.preorderTraversal(temp);
     }
 
-
-    //Preorder traversal of the Abstract Syntax tree for the output
+    //Helper function for outputSyntaxTree
+    //Preconditions:  None
+    //Postconditions: Displays the Abstract Syntax Tree to the terminal in its preorder form
     private void preorderTraversal(STNode node)
     {
         if(node == null){return;}
@@ -165,22 +170,54 @@ public class OutputController
             System.out.print('\n');
             this.syntaxOutputCount = 0;
         }
-        preorderTraversal(node.getLeftChild());
-        preorderTraversal(node.getMiddleChild());
-        preorderTraversal(node.getRightChild());
+        this.preorderTraversal(node.getLeftChild());
+        this.preorderTraversal(node.getMiddleChild());
+        this.preorderTraversal(node.getRightChild());
     }
 
-    public void addValidToken(Token t) {this.tokenStream.add(t);}
+    //Preconditions:  t != null
+    //Postconditions: t is added to the list of lexically valid token
+    public void addValidToken(Token t)
+    {
+        //make sure that we are not adding a null object to the list
+        assert t != null;
+        this.tokenStream.add(t);
+    }
 
-    //Preconditions: e must have the Tokens enum value of TUNDF/62
+    //Preconditions:  e must have the Tokens enum value of TUNDF/62
     //Postconditions: e is added to the list of lexical errors
-    public void addLexicalError(Token e) {this.lexicalErrors.add(e);}
+    public void addLexicalError(Token e)
+    {
+        //make sure that the Token object passed in is classified as a lexical error
+        assert e.getTokenID() == Tokens.TUNDF;
+        //update the number of lexical errors found
+        this.totalLexicalErrors++;
+        //use the Token object to generate an error message string
+        this.lexicalErrors.append(String.format("Line %d, Column %d: %s\n", e.getLineNo(), e.getColNo(), e.getLexeme()));
+    }
 
-    //Possibly have a secondary funciton passing in a STNode object
+    //Preconditions:  s != "" (empty string)
+    //Postconditions: Adds the string passed in to the StringBuilder object containing all syntax errors found during parsing
     public void addSyntaxError(String s)
     {
+        //make sure we do not have an empty string
+        assert !s.equals("");
+        //update the count of how many syntax errors have been found during parsing
         this.totalSyntaxErrors++;
-        this.msgSyntaxErrors.append(s);
+        //add the string passed in to the StringBuilder object holding all syntax errors found
+        this.syntaxErrors.append(s);
+    }
+
+    //Preconditions:  s != "" (empty string)
+    //Postconditions: Adds the string passed in to the StringBuilder object containing all semantic errors found during parsing
+    public void addSemanticError(String s)
+    {
+        //make sure we do not have an empty string
+        assert !s.equals("");
+        //update the count of how many semantic errors have been found during parsing
+        this.totalSemanticErrors++;
+        //add the string passed in to the StringBuilder object holding all semantic errors found
+        this.semanticErrors.append(s);
     }
 
     //Setters
@@ -202,13 +239,14 @@ public class OutputController
     //                  The LexicalScanner object needs to have called readFile() followed by getToken() or nextToken() so that at least one Token object is generated
     //                  The OutputController needs to have called setTokens()
     //Postconditions: Assigns an ArrayList of type Token that contains any Token objects that have been classified as a lexical error by a LexicalScanner object
-    public void setLexicalErrors(ArrayList<Token> le) {this.lexicalErrors = le;}
+    public void setLexicalErrors(StringBuilder le) {this.lexicalErrors = le;}
 
     //Preconditions:
     //Postconditions:
-    public void setMsgSyntaxErrors(StringBuilder sb) {this.msgSyntaxErrors = sb;}
+    public void setSyntaxErrors(StringBuilder sb) {this.syntaxErrors = sb;}
 
     public void setTotalSyntaxErrors(int s) {this.totalSyntaxErrors = s;}
+
 
     //Getters
 
@@ -232,9 +270,9 @@ public class OutputController
     //                  The LexicalScanner object needs to have called readFile() followed by getToken() or nextToken() so that at least one Token object is generated
     //                  The OutputController needs to have called setTokens() with the ArrayList generated by the LexicalScanner object passed in
     //Postconditions: Returns an ArrayList of type Token that contains any Token objects that have been classified as a lexical error by a LexicalScanner object
-    public ArrayList<Token> getLexicalErrors() {return this.lexicalErrors;}
+    public StringBuilder getLexicalErrors() {return this.lexicalErrors;}
 
-    public StringBuilder getMsgSyntaxErrors() {return this.msgSyntaxErrors;}
+    public StringBuilder getSyntaxErrors() {return this.syntaxErrors;}
 
     public int getTotalSyntaxErrors() {return this.totalSyntaxErrors;}
 

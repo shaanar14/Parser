@@ -79,4 +79,10 @@ public class SymbolEntry
     public boolean isDeclared() {return this.declared;}
 
     public Tokens getType() {return this.type;}
+
+    @Override
+    public String toString()
+    {
+        return this.getAttribute().toString();
+    }
 }
