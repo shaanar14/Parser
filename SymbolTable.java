@@ -3,6 +3,7 @@
     Author: Shaan Arora, C3236359
     SymbolTable Class
     Stores all global constants, functions, expressions, variables etc that have been parsed in the form of a SymbolEntry object.
+    Function definitions and the main body of the program is stored as FuncTable objects which are contained in a list
  */
 
 import java.util.Hashtable;
@@ -10,18 +11,24 @@ import java.util.LinkedList;
 
 public class SymbolTable
 {
+    //Private Member Variables
+
     //Single specific SymbolEntry object for capturing the CD20 keyword which should be at the start of a program
     //It should also have a program name after it e.g. CD20 Program which is captured in the form of an identifier Token
     //This allows semantics to enforce the rule that the there is a CD20 keyword at the start and end of program in a source code file
     //  and that the program name/identifier Token do match
     //Doing this so we have direct access to this specific SymbolEntry without storing it in a HashTable
     private SymbolEntry program;
+
     //Hashtables are of Integer , SymbolTable Key Value pairs
     //One store SymbolEntry objects for global constants, types or arrays found during parsing
     private Hashtable<Integer, SymbolEntry> globals;
+
     //List of HashTables to help define scoping for SymbolEntries
     //Function declarations & defintions come before main so they will come first in the list
-    private LinkedList<Hashtable<Integer, SymbolEntry>> scope;
+    //TODO rename?
+    private LinkedList<FuncTable> scope;
+
     //Integer to store the index of the current scope to make adding SymbolEntry objects into that scope easier
     private int currentIndex;
 
@@ -33,19 +40,6 @@ public class SymbolTable
         this.scope = new LinkedList<>();
         this.currentIndex = 0;
     }
-
-    //TODO Implement the following:
-    //  void putConsts(Integer, Symbol Entry)
-    //  SymbolEntry findConsts(Key) -> get(Key) Hashtable
-    //  openNewScope() -> this.scope.add(new HashTable<Integer, SymbolEntry>);
-    //  addToCurrentScope() -> integer set to the index of the newly created HashTable
-    //  closeCurrentScope() -> reset the counter
-    //  putCurrentScope()
-    //  findCurrentScope()
-    //  findEntry()
-    //  For find functions use containsKey(Key) to check if the key does actually exist
-    //      becaues i dont want get(Key) to return null
-
 
     //Operational Methods
 
@@ -65,7 +59,7 @@ public class SymbolTable
         return this.globals.containsValue(record);
     }
 
-    //Preconditions:
+    //Preconditions:  None
     //Postconditions: Returns the SymbolEntry object that is associated with the key passed in from the globals HashTable
     public SymbolEntry getRecordGlobals(int key)
     {
@@ -81,27 +75,28 @@ public class SymbolTable
     public void createNewScope()
     {
         //Create a temp HashTable object for the scope
-        Hashtable<Integer, SymbolEntry> newScope = new Hashtable<>();
+        FuncTable newScope = new FuncTable();
         //Add temp table to the list of scopes
         this.scope.add(newScope);
         //Assign the index of the new HashTable to currentIndex
         this.currentIndex = this.scope.indexOf(newScope);
     }
 
+    //TODO implement and possibly rename
+    //setNameCurrentScope
+    //setParamsCurrentScope
+    //setReturnTypeCurrentScope
+
     //Preconditions:  SymbolTable has been declared & initialized
     //Postconditions: Places the int and SymbolEntry passed in into the current HashTable which is acting as the current scope
-    public void putToCurrentScope(int i, SymbolEntry record)
+    public void putInCurrentScope(int i, SymbolEntry record)
     {
-        this.scope.get(this.currentIndex).put(i, record);
+        this.scope.get(this.currentIndex).putInBody(i, record);
     }
 
     //Preconditions:  SymbolTable has been declared & initialized
     //Postconditions: Returns true if the record passed in does exist in the current HashTable which is acting as the current scope
-    public boolean findInCurrentScope(SymbolEntry record)
-    {
-        return this.scope.get(this.currentIndex).containsValue(record);
-    }
-
+    public boolean findInCurrentScope(SymbolEntry record) {return this.scope.get(this.currentIndex).findInBody(record);}
 
     //Setters
 
@@ -113,12 +108,12 @@ public class SymbolTable
     //Postconditions: Assigns the HashTable object c to the private member variable consts
     public void setGlobals(Hashtable<Integer, SymbolEntry> c) {this.globals = c;}
 
-    //Preconditions:
-    //Postconditions:
-    public void setScope(LinkedList<Hashtable<Integer, SymbolEntry>> s) {this.scope = s;}
+    //Preconditions:  None
+    //Postconditions: Assigns s to the private member variable scope
+    public void setScope(LinkedList<FuncTable> s) {this.scope = s;}
 
-    //Preconditions:
-    //Postconditions:
+    //Preconditions:  None
+    //Postconditions: Assigns i to the private member variable currentIndex
     public void setCurrentIndex(int i) {this.currentIndex = i;}
 
     //Getters
@@ -127,15 +122,24 @@ public class SymbolTable
     //Postconditions: Returns the SymbolEntry object that is storing the information regarding the CD20 keyword
     public SymbolEntry getProgram() {return this.program;}
 
+    //Specific Getter for the name of the program
+    //Preconditions:  program != null
+    //Postconditions: Returns the attribute of the SymbolEntry object associated with the program name
+    public String getProgramName()
+    {
+        assert this.program != null;
+        return this.program.getName();
+    }
+
     //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Returns the HashTable object of the member variable consts
     public Hashtable<Integer, SymbolEntry> getGlobals() {return this.globals;}
 
-    //Preconditions
-    //Postconditions
-    public LinkedList<Hashtable<Integer, SymbolEntry>> getScope() {return this.scope;}
+    //Preconditions:  None
+    //Postconditions: Returns the list of all function defintions including main body
+    public LinkedList<FuncTable> getScope() {return this.scope;}
 
-    //Preconditions:
-    //Postconditions:
+    //Preconditions:  None
+    //Postconditions: Returns the index of the FuncTable object which is the current scope
     public int getCurrentIndex() {return this.currentIndex;}
 }

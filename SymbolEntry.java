@@ -7,12 +7,14 @@
         for lookup during future compilation phases
  */
 
+import java.util.ArrayList;
+
 public class SymbolEntry
 {
     //Private member variables
 
     //Name of the entry
-    private StringBuilder attribute;
+    private String name;
     private int id;
     //Location of the attribute in the source code file
     //array acting as a pair of integer values
@@ -24,49 +26,45 @@ public class SymbolEntry
     private Tokens type;
     //TODO add base register and offset for code gen
     //private final int[] stackLocation
+    //List of attributes associated with this entry
+    private ArrayList<SymbolEntry> attributes;
 
     public SymbolEntry()
     {
-        this.attribute = new StringBuilder();
+        this.name = "";
         this.id = 0;
         this.location = new int[2];
         this.declared = false;
         this.type = null;
+        this.attributes = new ArrayList<>();
     }
 
-    public SymbolEntry(Tokens t)
-    {
-        this.type = t;
-        this.attribute = new StringBuilder();
-        this.id = 0;
-        this.location = new int[2];
-        this.declared = false;
-    }
-
+    //TODO comments
     //Setters
 
-    public void setAttribute(StringBuilder a) {this.attribute = a;}
-
-    //Secondary setter for attribute so we can build the attribute as we parse
-    public void addToAttribute(String s) {this.attribute.append(s);}
+    public void setName(String a) {this.name = a;}
 
     public void setID(int i) {this.id = i;}
-
-    public void setLineNo(int l) {this.location[0] = l;}
-
-    public void setColNo(int c) {this.location[1] = c;}
 
     public void setDeclared(boolean dec) {this.declared = dec;}
 
     public void setType(Tokens type){this.type = type;}
 
-    //Specific setter so we can update the line number and column number all at once
-
     public void setLocation(int l, int c) {this.location[0] = l; this.location[1] = c;}
+
+    public void setLineNo(int l) {this.location[0] = l;}
+
+    public void setColNo(int c) {this.location[1] = c;}
+
+    public void setAttributes(ArrayList<SymbolEntry> attr) {this.attributes = attr;}
+
+    //Specific setter to add a single SymbolEntry object into the list of attributes
+
+    public void addAttribute(SymbolEntry a) {this.attributes.add(a);}
 
     //Getters
 
-    public StringBuilder getAttribute() {return this.attribute;}
+    public String getName() {return this.name;}
 
     public int getID() {return this.id;}
 
@@ -80,9 +78,11 @@ public class SymbolEntry
 
     public Tokens getType() {return this.type;}
 
+    public ArrayList<SymbolEntry> getAttributes() {return this.attributes;}
+
     @Override
     public String toString()
     {
-        return this.getAttribute().toString();
+        return this.getName();
     }
 }

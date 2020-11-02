@@ -5,8 +5,6 @@
     An abstract syntax tree data structure to represent the underlying structure of a CD20 program for future phases of compilation.
  */
 
-import org.w3c.dom.Node;
-
 //TODO add symbol table and error recovery logic
 public class SyntaxTree
 {
@@ -84,22 +82,18 @@ public class SyntaxTree
             if(this.next.getTokenID() == Tokens.TIDEN)
             {
                 //Set the lexeme of our lookahead token to be the attribute of that SymbolEntry object that is capturing the CD20 keyword
-                p.addToAttribute(this.next.getLexeme());
+                p.setName(this.next.getLexeme());
                 //match & consume the identifier token
                 //this will return true because our lookahead is of type TIDEN and will generate the next valid Token for our lookahead
                 this.match(Tokens.TIDEN);
+                //if the creation of the SymbolEntry object for the start CD20 keyword and program name then add to symbol table
+                this.table.setProgram(p);
             }
-            else
-            {
-                int[] loc = {this.next.getLineNo(), this.next.getColNo()};
-                this.errorSyntax("Program name expected", loc);
-            }
+            //Error message
+            else this.errorSyntax("Program name expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
-        else
-        {
-            int[] loc = {this.next.getLineNo(), this.next.getColNo()};
-            this.errorSyntax("CD20 keyword expected", loc);
-        }
+        //Error message
+        else this.errorSyntax("CD20 keyword expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
         STNode g = this.globals();
         STNode f = this.funcs();
         STNode m = this.mainbody();
@@ -173,7 +167,7 @@ public class SyntaxTree
         SymbolEntry r = new SymbolEntry();
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             r.setLocation(this.next.getLineNo(), this.next.getColNo());
             this.match(Tokens.TIDEN);
         }
@@ -182,6 +176,16 @@ public class SyntaxTree
         STNode expr = this.expr();
         STNode init = new STNode(NodeValue.NINIT, expr);
         init.setRecord(r);
+        //TODO test this
+        //If the SymbolEntry does not exist in the SymbolTable then mark it as declared and add it to the SymbolTable
+        if(this.table.findGlobals(r))
+        {
+            //Mark that r has been declared
+            r.setDeclared(true);
+            //Add the record generated for init to the SymbolTable
+            this.table.putGlobals(r.getLineNo(), r);
+        }
+        else{this.errorSemantic(String.format("%s has already been declared", r.getName()), r.getLocation());}
         return init;
     }
 
@@ -202,6 +206,7 @@ public class SyntaxTree
         return t1;
     }
 
+    //TOOD implement SymbolEntry objects and semantic checks
     //Rules: NRTYPE <type> ::= <stuctid> is <fields> end
     //       NATYPE <type> ::= <typeid>  is arrray [ <expr> ] of <structid>
     private STNode type()
@@ -209,7 +214,7 @@ public class SyntaxTree
         SymbolEntry r = new SymbolEntry();
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             r.setLocation(this.next.getLineNo(),this.next.getColNo());
             //match identifier token, this is for both <structid> and <typeid> as they are both identifiers
             this.match(Tokens.TIDEN);
@@ -229,6 +234,7 @@ public class SyntaxTree
         //for second rule where we have is arrays
         if(this.next.getTokenID() == Tokens.TARAY)
         {
+            r.setType(Tokens.TARAY);
             //if the token object is arrays then generate the next valid token object from the scanner
             this.match(Tokens.TARAY);
             //match left square bracket
@@ -243,7 +249,7 @@ public class SyntaxTree
             if(this.next.getTokenID() == Tokens.TIDEN)
             {
                 //r.addToAttribute(this.next.getLexeme());
-                //TODO semantic check
+                //TODO semantic check if its declared
                 this.match(Tokens.TIDEN);
             }
             else
@@ -256,7 +262,9 @@ public class SyntaxTree
         else
         {
             //if this.next is not arrays then we have the first rule
-            type.setLeftChild(this.fields());
+            STNode f = this.fields();
+            //TODO add attributes
+            type.setLeftChild(f);
             if(!this.match(Tokens.TTEND))
             {
                 this.errorSyntax("end keyword expect", r.getLocation());
@@ -294,7 +302,8 @@ public class SyntaxTree
         //match & consume identifier token for <id>
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            array.addToAttribute(this.next.getLexeme());
+            //TODO semantic check on lookahead
+            array.setName(this.next.getLexeme());
             array.setType(Tokens.TARAY);
             array.setLocation(this.next.getLineNo(), this.next.getColNo());
             this.match(Tokens.TIDEN);
@@ -311,6 +320,15 @@ public class SyntaxTree
         {
             this.errorSyntax("Identifier required", new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
+        //if the entry does not exist in the table
+        if(this.table.findGlobals(array))
+        {
+            array.setDeclared(true);
+            //Add the array SymbolEntry into globals in the SymbolTable
+            this.table.putGlobals(array.getLineNo(), array);
+        }
+        //Error message
+        else{this.errorSemantic(String.format("%s has already been decalred", array.getName()), array.getLocation());}
         //Return a new node with a value of NARRD and array as its record
         return new STNode(NodeValue.NARRD, array);
     }
@@ -331,21 +349,32 @@ public class SyntaxTree
         }
         STNode stats = this.stats();
         //match end keyword
-        if(!this.match(Tokens.TTEND))
-        {
-            this.errorSyntax("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
-        }
+        if(this.next.getTokenID() == Tokens.TTEND) this.match(Tokens.TTEND);
+        else this.errorSyntax("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
         //TODO Semantics; check if the follow TCD20 TIDEN matchs the SymbolEntry object program in SymbolTable
         //match CD20 keyword
-        if(!this.match(Tokens.TCD20))
+        if(this.next.getTokenID() == Tokens.TCD20)
         {
-            this.errorSyntax("CD20 keyword missing", new int[]{this.next.getLineNo(), this.next.getColNo()});
+            //match & consume lookahead token
+            this.match(Tokens.TCD20);
+            if(this.next.getTokenID() == Tokens.TIDEN)
+            {
+                //Semantic Check to ensure that program name matches
+                if(!this.getTable().getProgramName().equals(this.next.getLexeme()))
+                {
+                    //TODO tidy up?
+                    //trim to remove whitespace makes error message in listing file look nicer
+                    this.errorSemantic(String.format("Program name does not match, expected \"%s\"", this.getTable().getProgramName().trim())
+                                       , new int[] {this.next.getLineNo(), this.next.getColNo()});
+                }
+                //if the program names do match then we can just consume our lookehead
+                else this.match(Tokens.TIDEN);
+            }
+            //Error message
+            else this.errorSyntax("Program name expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
         }
-        //match identifier token for <id> which needs to also match the symbol table entry for the same identifier token for the very first CD20 token
-        if(!this.match(Tokens.TIDEN))
-        {
-            this.errorSyntax("program name missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
-        }
+        //Error message
+        else this.errorSyntax("CD20 keyword expected", new int[]{this.next.getLineNo(), this.next.getColNo()});
         //Return a STNode object with the NodeValue NMAIN, slist as its left child & stats as its right child
         return new STNode(NodeValue.NMAIN, slist, stats);
     }
@@ -381,21 +410,18 @@ public class SyntaxTree
         SymbolEntry r = new SymbolEntry();
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             r.setLocation(this.next.getLineNo(), this.next.getColNo());
             //match identifier token for <id>
             this.match(Tokens.TIDEN);
         }
         else{this.errorSyntax("variable not found",new int[]{this.next.getLineNo(), this.next.getColNo()});}
         this.match(Tokens.TCOLN);
-        //14 for int , 15 for real and 16 for bool
         if(this.next.getTokenID() == Tokens.TINTG || this.next.getTokenID() == Tokens.TREAL || this.next.getTokenID() == Tokens.TBOOL)
         {
             r.setType(this.next.getTokenID());
             this.match(this.next.getTokenID());
-            STNode s = new STNode(NodeValue.NSDECL);
-            s.setRecord(r);
-            return s;
+            return new STNode(NodeValue.NSDECL, r);
         }
         this.errorSyntax("int or real or bool keyword not found", new int[]{this.next.getLineNo(), this.next.getColNo()});
         return new STNode();
@@ -411,7 +437,7 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TCOMA)
         {
             //generate next valid token object from the scanner
-            this.nextToken();
+            this.match(Tokens.TCOMA);
             f2 = this.fields();
             return new STNode(NodeValue.NFLIST, f1, f2);
         }
@@ -442,15 +468,17 @@ public class SyntaxTree
     //               Special <stype>    ::= int | real | bool
     //               Special <funcbody> ::= <locals> begin <stats> end
     //               Special <locals>   ::= <dlist> | epsilon
-    //TODO change whats returned
-    //TODO treat funcbody NMAIN?
-    //rtype links up to symbol table
     private STNode func()
     {
         STNode params = new STNode(), dlist = new STNode(), stats;
         //match & consume func keyword
         //which will return true because the only way we can enter this function is the if statement in funcs()
-        this.match(Tokens.TFUNC);
+        if(this.next.getTokenID() == Tokens.TFUNC)
+        {
+            //generate a new table in the SymbolTable
+            this.table.createNewScope();
+            this.match(Tokens.TFUNC);
+        }
         //match identifier token for <id>
         this.match(Tokens.TIDEN);
         //match left parantheses token for (
@@ -470,12 +498,14 @@ public class SyntaxTree
         {
             //capture the keyword in a SymbolEntry
             //generate next valid token
-            this.nextToken();
+            this.match(this.next.getTokenID());
             //All this below is for <funcbody>
             //check for the start of the rule <dlist> which is an identifier token
+            //dlist is derived from <locals>
             if(this.next.getTokenID() == Tokens.TIDEN) dlist = dlist();
             //match & consume begin keyword which will also generate the next valid token if successsful
             this.match(Tokens.TBEGN);
+            //<stats> in <funcbody>
             stats = this.stats();
             //match & consume end keyword
             this.match(Tokens.TTEND);
@@ -483,6 +513,7 @@ public class SyntaxTree
             //  params will be the left child but could be an empty node since  <plist>  ::= epsilon
             //  dlist will be the middle child but could be an empty node since <locals> ::= epsilon
             //  stats will be the right child which cannot be an empty node
+            //TODO semantic check that this function does indeed have a return statement
             return new STNode(NodeValue.NFUND, params, dlist, stats);
         }
         this.errorSyntax("int or real or bool or void not found", new int[]{this.next.getLineNo(),this.next.getColNo()});
@@ -519,7 +550,7 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TCONS)
         {
             //this.next wont have a lexeme so add it manually
-            p.addToAttribute("const");
+            p.setName("const");
             //match and consume our lookahead
             this.match(Tokens.TCONS);
             arrdecl = this.arrdecl();
@@ -531,7 +562,7 @@ public class SyntaxTree
         //check for <id> which is the start of both <sdecl> & <arrdecl>
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            p.addToAttribute(this.next.getLexeme());
+            p.setName(this.next.getLexeme());
             //match for identifier which is the start of both rules
             this.match(Tokens.TIDEN);
         }
@@ -580,7 +611,7 @@ public class SyntaxTree
         //<sdecl> & <arrdecl> both start with <id> so match & consume that
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             this.match(Tokens.TIDEN);
         }
         else {this.errorSyntax("identifier expect", new int[]{this.next.getLineNo(), this.next.getColNo()});}
@@ -603,7 +634,7 @@ public class SyntaxTree
         else if(this.next.getTokenID() == Tokens.TIDEN)
         {
             //add the lexeme of our lookahead token to our SymbolEntry
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             //match & consume our lookahead token
             this.match(Tokens.TIDEN);
             decl = new STNode(NodeValue.NARRD);
@@ -729,7 +760,7 @@ public class SyntaxTree
         //the lookahead is the of type TIDEN because that is how we entered this function in stats()
         //so we can match and consume that lookahead
         //could also use this.next.getTokenID() instead of Tokens.TIDEN
-        r.addToAttribute(this.next.getLexeme());
+        r.setName(this.next.getLexeme());
         r.setLocation(this.next.getLineNo(), this.next.getColNo());
         this.match(Tokens.TIDEN);
         //Cases for <stat> ::= <asgnstat>
@@ -1138,7 +1169,7 @@ public class SyntaxTree
     {
         STNode var, expr;
         SymbolEntry r = new SymbolEntry();
-        r.addToAttribute(this.next.getLexeme());
+        r.setName(this.next.getLexeme());
         r.setLineNo(this.next.getLineNo());
         //Match & check for identifier token which is the start of the rule, <id>
         this.match(Tokens.TIDEN);
@@ -1245,7 +1276,7 @@ public class SyntaxTree
             //assign the symbol entry type to be TNOTT
             r.setType(Tokens.TNOTT);
             //also manually add the not keyword to the attribute so we have the complete expression
-            r.addToAttribute("not");
+            r.setName("not");
             //update the location of the symbol entry to be the location of the lookahead token in the source code file
             r.setLocation(this.next.getLineNo(), this.next.getColNo());
             //consume lookahead
@@ -1295,37 +1326,37 @@ public class SyntaxTree
             case TEQEQ:
                 relop.setNodeValue(NodeValue.NEQL);
                 r.setType(this.next.getTokenID());
-                r.addToAttribute("==");
+                r.setName("==");
                 relop.setRecord(r);
                 break;
             case TNEQL:
                 relop.setNodeValue(NodeValue.NNEQ);
                 r.setType(this.next.getTokenID());
-                r.addToAttribute("!=");
+                r.setName("!=");
                 relop.setRecord(r);
                 break;
             case TGRTR:
                 relop.setNodeValue(NodeValue.NGRT);
                 r.setType(this.next.getTokenID());
-                r.addToAttribute(">");
+                r.setName(">");
                 relop.setRecord(r);
                 break;
             case TGEQL:
                 relop.setNodeValue(NodeValue.NGEQ);
                 r.setType(this.next.getTokenID());
-                r.addToAttribute(">=");
+                r.setName(">=");
                 relop.setRecord(r);
                 break;
             case TLEQL:
                 relop.setNodeValue(NodeValue.NLEQ);
                 r.setType(this.next.getTokenID());
-                r.addToAttribute("<=");
+                r.setName("<=");
                 relop.setRecord(r);
                 break;
             case TLESS:
                 relop.setNodeValue(NodeValue.NLSS);
                 r.setType(this.next.getTokenID());
-                r.addToAttribute("<");
+                r.setName("<");
                 relop.setRecord(r);
                 break;
         }
@@ -1408,9 +1439,9 @@ public class SyntaxTree
             this.match(this.next.getTokenID());
             //satisfy <term> rule
             term = this.term();
-            fact.setRecord(r);
             node.setLeftChild(term);
             node.setRightChild(fact);
+            node.setRecord(r);
             return node;
         }
         //epsilon path in the left factored rules
@@ -1463,18 +1494,16 @@ public class SyntaxTree
         //Check for integer literal token
         if(this.next.getTokenID() == Tokens.TILIT)
         {
+            r.setName(this.next.getLexeme());
             r.setType(Tokens.TINTG);
-            r.addToAttribute(this.next.getLexeme());
             this.match(Tokens.TILIT);
-            STNode t = new STNode(NodeValue.NILIT);
-            t.setRecord(r);
-            return t;
+            return new STNode(NodeValue.NILIT, r);
         }
         //check for float literal token
         if(this.next.getTokenID() == Tokens.TFLIT)
         {
             //store the details of the float literal in a SymbolEntry object
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             r.setType(Tokens.TFLIT);
             //match & consume lookahead token
             this.match(Tokens.TFLIT);
@@ -1510,7 +1539,7 @@ public class SyntaxTree
         {
             STNode v = new STNode();
             //add the lexeme of the lookahead to the symbol record
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             r.setLocation(this.next.getLineNo(), this.next.getColNo());
             //match & consume our lookahead
             this.match(Tokens.TIDEN);
@@ -1543,7 +1572,7 @@ public class SyntaxTree
                 if(this.next.getTokenID() == Tokens.TRPAR)
                 {
                     this.match(Tokens.TRPAR);
-                    r.addToAttribute("()");
+                    //r.setName("()");
                     t.setRecord(r);
                     return t;
                 }
@@ -1589,7 +1618,7 @@ public class SyntaxTree
         STNode print;
         if(this.next.getTokenID() == Tokens.TSTRG)
         {
-            r.addToAttribute(this.next.getLexeme());
+            r.setName(this.next.getLexeme());
             r.setLocation(this.next.getLineNo(), this.next.getColNo());
             this.match(Tokens.TSTRG);
             print = new STNode(NodeValue.NSTRG);
@@ -1616,11 +1645,12 @@ public class SyntaxTree
         this.getOutput().addSyntaxError(error);
     }
 
-    /*private void errorSemantic(String s, int[] location)
+    private void errorSemantic(String s, int[] location)
+    {
         String error = String.format("Semantic Error at line %d, col %d:  %s\n", location[0], location[1], s);
-        this.getOutput().addSyntaxError(error);
+        this.getOutput().addSemanticError(error);
+    }
 
-    */
     //Setters
 
     //Preconditions: SyntaxTree object has been declared and initialized
