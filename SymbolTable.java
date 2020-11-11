@@ -69,7 +69,6 @@ public class SymbolTable
         return this.globals.get(key);
     }
 
-    //TODO test
     //Preconditions:  SymbolTable has been declared & initialized
     //Postconditions: Creates a new HashTable object and places it into the list to act as a new scope
     public void createNewScope()
@@ -84,6 +83,14 @@ public class SymbolTable
 
     //TODO implement and possibly rename
     //setNameCurrentScope
+    //Postconditions: SymbolTable has been declared & initialized
+    //Postconditions: Assigns the value n to the name attribute of the current FuncTable object in scope, acting as the current scoping block
+    public void setNameCurrentScope(SymbolEntry n)
+    {
+        //make sure that we are not accessing a null object
+        assert this.scope.get(this.currentIndex) != null;
+        this.scope.get(this.currentIndex).setName(n);
+    }
     //setParamsCurrentScope
     //setReturnTypeCurrentScope
 
@@ -97,6 +104,15 @@ public class SymbolTable
     //Preconditions:  SymbolTable has been declared & initialized
     //Postconditions: Returns true if the record passed in does exist in the current HashTable which is acting as the current scope
     public boolean findInCurrentScope(SymbolEntry record) {return this.scope.get(this.currentIndex).findInBody(record);}
+
+    //Preconditions: SymbolTable has been declared and initialized, object at currentIndex != null
+    //Postconditions: Returns the SymbolEntry paired with the key passed in from the body of the current function/scope
+    public SymbolEntry getInCurrentScope(int key)
+    {
+        //make sure we do have an object in scope at currentIndex
+        assert this.scope.get(this.currentIndex) != null;
+        return this.scope.get(this.currentIndex).getInBody(key);
+    }
 
     //Setters
 
@@ -138,6 +154,24 @@ public class SymbolTable
     //Preconditions:  None
     //Postconditions: Returns the list of all function defintions including main body
     public LinkedList<FuncTable> getScope() {return this.scope;}
+
+    //Preconditions:  object at currentIndex in scope != null
+    //Postconditions: Returns the FuncTable in scope at currentIndex
+    public FuncTable getCurrentScope() {return this.scope.get(this.currentIndex);}
+
+    //Preconditions:
+    //Postconditions: Returns the FuncTable object in scope with the same
+    public FuncTable getCurrentScope(SymbolEntry record)
+    {
+        //if the name attribute of the FuncTable object in scope at currentIndex
+        //  is the same same as record then return that FuncTable object
+        if(this.scope.get(this.currentIndex).getName() == record)
+        {
+            return this.scope.get(this.currentIndex);
+        }
+        //probably return something better then null
+        return null;
+    }
 
     //Preconditions:  None
     //Postconditions: Returns the index of the FuncTable object which is the current scope

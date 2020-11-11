@@ -15,6 +15,7 @@ public class SymbolEntry
 
     //Name of the entry
     private String name;
+    //ID for the entry
     private int id;
     //Location of the attribute in the source code file
     //array acting as a pair of integer values
@@ -39,7 +40,7 @@ public class SymbolEntry
         this.attributes = new ArrayList<>();
     }
 
-    //TODO comments
+    //TODO write documentation, pre & post conditions
     //Setters
 
     public void setName(String a) {this.name = a;}
@@ -47,6 +48,9 @@ public class SymbolEntry
     public void setID(int i) {this.id = i;}
 
     public void setDeclared(boolean dec) {this.declared = dec;}
+
+    //Specific Setter to make the current SymbolEntry object declared
+    public void declare() {this.declared = true;}
 
     public void setType(Tokens type){this.type = type;}
 
