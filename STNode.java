@@ -100,7 +100,7 @@ public class STNode
     public NodeValue getNodeValue() {return this.nodeValue;}
 
     //Specific getter to retrieve the attribute of the node which is stored in a STNode's record
-    public String getAttribute() {return this.getRecord().getName();}
+    public String getName() {return this.getRecord().getName();}
 
     @Override
     public String toString()
@@ -116,7 +116,7 @@ public class STNode
                 length = nv.length();
             }
         }
-        StringBuilder a = new StringBuilder(this.getAttribute());
+        StringBuilder a = new StringBuilder(this.getName());
         length = a.length();
         if(length % 7 != 0)
         {

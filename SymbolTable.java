@@ -6,6 +6,7 @@
     Function definitions and the main body of the program is stored as FuncTable objects which are contained in a list
  */
 
+import java.util.ArrayList;
 import java.util.Hashtable;
 import java.util.LinkedList;
 
@@ -19,14 +20,11 @@ public class SymbolTable
     //  and that the program name/identifier Token do match
     //Doing this so we have direct access to this specific SymbolEntry without storing it in a HashTable
     private SymbolEntry program;
-
     //Hashtables are of Integer , SymbolTable Key Value pairs
     //One store SymbolEntry objects for global constants, types or arrays found during parsing
     private Hashtable<Integer, SymbolEntry> globals;
-
-    //List of HashTables to help define scoping for SymbolEntries
+    //List of FuncTable objects to help define scoping within the source code file
     //Function declarations & defintions come before main so they will come first in the list
-    //TODO rename?
     private LinkedList<FuncTable> scope;
 
     //Integer to store the index of the current scope to make adding SymbolEntry objects into that scope easier
@@ -81,18 +79,38 @@ public class SymbolTable
         this.currentIndex = this.scope.indexOf(newScope);
     }
 
-    //TODO implement and possibly rename
-    //setNameCurrentScope
     //Postconditions: SymbolTable has been declared & initialized
     //Postconditions: Assigns the value n to the name attribute of the current FuncTable object in scope, acting as the current scoping block
-    public void setNameCurrentScope(SymbolEntry n)
+    public void setNameCurrentScope(String n)
     {
         //make sure that we are not accessing a null object
         assert this.scope.get(this.currentIndex) != null;
         this.scope.get(this.currentIndex).setName(n);
     }
-    //setParamsCurrentScope
-    //setReturnTypeCurrentScope
+
+    //Preconditions:  SymbolTable has been declared & intialized
+    //Postconditions: Assigns the ArrayList of SymbolEntry objects p to the params ArrayList of the FuncTable object at currentIndex in scope
+    public void setParamsCurrentScope(ArrayList<SymbolEntry> p)
+    {
+        assert p.size() > 0;
+        assert this.scope.get(this.currentIndex) != null;
+        this.scope.get(this.currentIndex).setParams(p);
+
+    }
+
+    //Preconditions:  SymbolTable has been declared & intialized
+    //Postconditions: Assigns the Tokens value t to returnType of the FuncTable object at currentIndex in scope
+    public void setRTypeCurrentScope(Tokens t)
+    {
+        assert this.scope.get(this.currentIndex) != null;
+        this.scope.get(this.currentIndex).setReturnType(t);
+    }
+
+    public void setLocCurrentScope(int[] l)
+    {
+        assert this.scope.get(this.currentIndex) != null;
+        this.scope.get(this.currentIndex).setLocation(l);
+    }
 
     //Preconditions:  SymbolTable has been declared & initialized
     //Postconditions: Places the int and SymbolEntry passed in into the current HashTable which is acting as the current scope
@@ -124,11 +142,11 @@ public class SymbolTable
     //Postconditions: Assigns the HashTable object c to the private member variable consts
     public void setGlobals(Hashtable<Integer, SymbolEntry> c) {this.globals = c;}
 
-    //Preconditions:  None
+    //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Assigns s to the private member variable scope
     public void setScope(LinkedList<FuncTable> s) {this.scope = s;}
 
-    //Preconditions:  None
+    //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Assigns i to the private member variable currentIndex
     public void setCurrentIndex(int i) {this.currentIndex = i;}
 
@@ -151,7 +169,7 @@ public class SymbolTable
     //Postconditions: Returns the HashTable object of the member variable consts
     public Hashtable<Integer, SymbolEntry> getGlobals() {return this.globals;}
 
-    //Preconditions:  None
+    //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Returns the list of all function defintions including main body
     public LinkedList<FuncTable> getScope() {return this.scope;}
 
@@ -159,9 +177,9 @@ public class SymbolTable
     //Postconditions: Returns the FuncTable in scope at currentIndex
     public FuncTable getCurrentScope() {return this.scope.get(this.currentIndex);}
 
-    //Preconditions:
+    //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Returns the FuncTable object in scope with the same
-    public FuncTable getCurrentScope(SymbolEntry record)
+    public FuncTable getCurrentScope(String record)
     {
         //if the name attribute of the FuncTable object in scope at currentIndex
         //  is the same same as record then return that FuncTable object
@@ -173,7 +191,7 @@ public class SymbolTable
         return null;
     }
 
-    //Preconditions:  None
+    //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Returns the index of the FuncTable object which is the current scope
     public int getCurrentIndex() {return this.currentIndex;}
 }

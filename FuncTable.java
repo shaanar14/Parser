@@ -15,22 +15,25 @@ public class FuncTable
 
     //possibly refactor this into a SymbolEntry for the identifier token after <func>
     //String for the name of the current scope block
-    private SymbolEntry name;
+    private String name;
     //List of SymbolEntry objects to represent the parameters of the function
     private ArrayList<SymbolEntry> params;
     //The return type of the function
     //  which will be one of the following Tokens values, TINTG TREAL TBOOL TVOID
     //  which means the function returns an int, real bool or nothing (void)
     private Tokens returnType;
+    //location of the function defintion
+    private int[] location;
     //HashTable to store all the SymbolEntry objects generated during parsing from the statements inside the function
     private Hashtable<Integer, SymbolEntry> body;
 
     //Default Constructor
     public FuncTable()
     {
-        this.name = new SymbolEntry();
+        this.name = "";
         this.params = new ArrayList<>();
         this.returnType = null;
+        this.location = new int[2];
         this.body = new Hashtable<>();
     }
 
@@ -60,7 +63,7 @@ public class FuncTable
 
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Assigns the value of n to the attribute name
-    public void setName(SymbolEntry n) {this.name = n;}
+    public void setName(String n) {this.name = n;}
 
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Assigns the ArrayList plist to the attribute params
@@ -75,6 +78,8 @@ public class FuncTable
     //Postconditions: Assigns the value of type to the attribute returnType
     public void setReturnType(Tokens type) {this.returnType = type;}
 
+    public void setLocation(int[] l) {this.location = l;}
+
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Assigns the HashTable b to the attribute body
     public void setBody(Hashtable<Integer, SymbolEntry> b) {this.body = b;}
@@ -83,7 +88,7 @@ public class FuncTable
 
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Returns the name for the current FuncTable object
-    public SymbolEntry getName() {return this.name;}
+    public String getName() {return this.name;}
 
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Returns the ArrayList params for the current FuncTable object
@@ -92,6 +97,8 @@ public class FuncTable
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Returns the Tokens enum value returnType for the current FuncTable object
     public Tokens getReturnType() {return this.returnType;}
+
+    public int[] getLocation() {return this.location;}
 
     //Preconditions:  FuncTable has been declared & intialized
     //Postconditions: Returns the HashTable body for the current FuncTable object

@@ -7,11 +7,8 @@
     Output of these two objects is driven by an OutputController object
 */
 
-import java.util.Arrays;
-
 public class A2
 {
-    //public final static SymbolTable st = new SymbolTable();
     public static void main(String[] args)
     {
         assert args.length != 0  : "File name required";

@@ -5,6 +5,8 @@
     An abstract syntax tree data structure to represent the underlying structure of a CD20 program for future phases of compilation.
  */
 
+import java.util.ArrayList;
+
 //TODO add symbol table and error recovery logic
 public class SyntaxTree
 {
@@ -264,7 +266,8 @@ public class SyntaxTree
         {
             //if this.next is not arrays then we have the first rule
             STNode f = this.fields();
-            //TODO add attributes
+            //TODO test to make sure attributes are being added in successfully
+            r.setAttributes(this.collectRecords(f, new ArrayList<>()));
             type.setLeftChild(f);
             if(!this.match(Tokens.TTEND))
             {
@@ -352,7 +355,6 @@ public class SyntaxTree
         //match end keyword
         if(this.next.getTokenID() == Tokens.TTEND) this.match(Tokens.TTEND);
         else this.errorSyntax("end keyword missing",new int[]{this.next.getLineNo(), this.next.getColNo()});
-        //TODO Semantics; check if the follow TCD20 TIDEN matchs the SymbolEntry object program in SymbolTable
         //match CD20 keyword
         if(this.next.getTokenID() == Tokens.TCD20)
         {
@@ -405,7 +407,7 @@ public class SyntaxTree
     }
 
     //Rule: NSDECL <sdecl> ::= <id> : int | <id> : real | <id> : bool
-    //TODO change whats returned
+    //TODO change whats returned, implement semantics
     private STNode sdecl()
     {
         //SymbolEntry for the node that will be returned by this function
@@ -427,12 +429,13 @@ public class SyntaxTree
             this.match(this.next.getTokenID());
             //Semantic Rule 2
             //if r is not in the SymbolTable
-            if(!this.table.findInCurrentScope(r))
+            //TODO uncomment
+            /*if(!this.table.findInCurrentScope(r))
             {
                 r.declare();
                 int key = r.getLineNo() + r.getColNo();
                 this.table.putInCurrentScope(key, r);
-            }
+            }*/
             //if it is in the symbol table
             e = String.format("%s has already been declared", r.getName());
             this.errorSemantic(e, r.getLocation());
@@ -471,13 +474,6 @@ public class SyntaxTree
         {
             //func() will match and consume the func keyword that we saw before we entered this function
             func = this.func();
-            //Semantic Check Rule 8; check for return statement
-            if(!this.checkFuncReturn(func))
-            {
-                String e = String.format("No return statement found in function declaration %s", func.getRecord().getName());
-                this.errorSemantic(e, func.getRecord().getLocation());
-            }
-
             funcs = this.funcs();
             return new STNode(NodeValue.NFUNCS, func, funcs);
         }
@@ -491,7 +487,7 @@ public class SyntaxTree
     //               Special <stype>    ::= int | real | bool
     //               Special <funcbody> ::= <locals> begin <stats> end
     //               Special <locals>   ::= <dlist> | epsilon
-    //TODO implementing adding func to SymbolTable
+    //TODO test SymbolTable functions
     private STNode func()
     {
         STNode params = new STNode(), dlist = new STNode(), stats;
@@ -501,15 +497,27 @@ public class SyntaxTree
         {
             //generate a new table in the SymbolTable
             this.table.createNewScope();
+            //set the location of the function defintion within the source code file
+            this.table.setLocCurrentScope(new int[]{this.next.getLineNo(), this.next.getColNo()});
             this.match(Tokens.TFUNC);
         }
         //match identifier token for <id>
-        this.match(Tokens.TIDEN);
+        if(this.next.getTokenID() == Tokens.TIDEN)
+        {
+            this.table.setNameCurrentScope(this.next.getLexeme());
+            this.match(Tokens.TIDEN);
+        }
         //match left parantheses token for (
         this.match(Tokens.TLPAR);
         //if we have the start of <params> which goes to <param> which starts with either <id> or const keyword
         //if we dont have the start of the <params> rule then thats okay because <plist> ::= epsilon
-        if(this.next.getTokenID() == Tokens.TIDEN || this.next.getTokenID() == Tokens.TCONS) params = this.params();
+        if(this.next.getTokenID() == Tokens.TIDEN || this.next.getTokenID() == Tokens.TCONS)
+        {
+            params = this.params();
+            //collect the SymbolEntry objects for all the STNode's representing the parameters of the function and store them in the SymbolTable
+            //TODO test
+            this.table.setParamsCurrentScope(this.collectRecords(params, new ArrayList<>()));
+        }
         //match right parantheses token for )
         this.match(Tokens.TRPAR);
         //match colon token for :
@@ -520,24 +528,46 @@ public class SyntaxTree
            this.next.getTokenID() == Tokens.TREAL ||
            this.next.getTokenID() == Tokens.TBOOL)
         {
+            //set the return type of the function
+            this.table.setRTypeCurrentScope(this.next.getTokenID());
             //capture the keyword in a SymbolEntry
             //generate next valid token
             this.match(this.next.getTokenID());
             //All this below is for <funcbody>
             //check for the start of the rule <dlist> which is an identifier token
             //dlist is derived from <locals>
-            if(this.next.getTokenID() == Tokens.TIDEN) dlist = dlist();
+            if(this.next.getTokenID() == Tokens.TIDEN)
+            {
+                dlist = dlist();
+                //Semantic Check; if a local variable name matches a parameter in a function definition
+                for(SymbolEntry p : this.table.getCurrentScope().getParams())
+                {
+                    for(SymbolEntry d : this.collectRecords(dlist, new ArrayList<>()))
+                    {
+                        if(p.isDeclared() || p.getName().equals(d.getName()))
+                        {
+                            String e = String.format("%s has already been declared/used", d.getName());
+                            this.errorSemantic(e, d.getLocation());
+                        }
+                    }
+                }
+            }
             //match & consume begin keyword which will also generate the next valid token if successsful
             this.match(Tokens.TBEGN);
             //<stats> in <funcbody>
             stats = this.stats();
+            //Sematic Check; function defintion must have at least one return statement
+            if(!this.checkFuncReturn(stats))
+            {
+                String e = String.format("No return statement found in %s", this.table.getCurrentScope().getName());
+                this.errorSemantic(e, this.table.getCurrentScope().getLocation());
+            }
             //match & consume end keyword
             this.match(Tokens.TTEND);
             //Return a STNode object with the NodeValue NFUND
             //  params will be the left child but could be an empty node since  <plist>  ::= epsilon
             //  dlist will be the middle child but could be an empty node since <locals> ::= epsilon
             //  stats will be the right child which cannot be an empty node
-            //TODO semantic check that this function does indeed have a return statement
             return new STNode(NodeValue.NFUND, params, dlist, stats);
         }
         this.errorSyntax("int or real or bool or void not found", new int[]{this.next.getLineNo(),this.next.getColNo()});
@@ -555,7 +585,7 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TCOMA)
         {
             //generate next valid token
-            this.nextToken();
+            this.match(Tokens.TCOMA);
             params = this.params();
             return new STNode(NodeValue.NPLIST, param, params);
         }
@@ -571,6 +601,7 @@ public class SyntaxTree
         SymbolEntry p = new SymbolEntry();
         STNode sdecl, arrdecl;
         //check for const keyword for the rule const <arrdecl>
+        //TODO semantic check in here
         if(this.next.getTokenID() == Tokens.TCONS)
         {
             //this.next wont have a lexeme so add it manually
@@ -587,6 +618,15 @@ public class SyntaxTree
         if(this.next.getTokenID() == Tokens.TIDEN)
         {
             p.setName(this.next.getLexeme());
+            p.setLocation(this.next.getLineNo(), this.next.getColNo());
+            //checking globals because function defintions come directly after global defintions and before main
+            if(this.table.findGlobals(p))
+            {
+                String e = String.format("%s has already been declared", p.getName());
+                this.errorSemantic(e, p.getLocation());
+            }
+            //if its not the global scope then we can declare p
+            p.declare();
             //match for identifier which is the start of both rules
             this.match(Tokens.TIDEN);
         }
@@ -604,6 +644,7 @@ public class SyntaxTree
         {
             //p.addToAttribute(this.next.getLexeme());
             //consume identifier
+            //TODO semantic check that this is a valid type so check global scope because this is for parameters
             this.match(Tokens.TIDEN);
             //<param> ::= <arrdecl>
             arrdecl = new STNode(NodeValue.NARRD);
@@ -797,13 +838,14 @@ public class SyntaxTree
             STNode a = this.asgnop();
             //satisfy <bool>
             STNode b = this.bool();
-            //since we just have <var> ::= <id> make a node for NSIMV
+            //since we just have <var> ::= <id> make a node for NSIMV at the start of <var> <asgnop> <bool>
             STNode v = new STNode(NodeValue.NSIMV);
             v.setRecord(r);
             //following the output diagram from the specs we will return a
             //with v as its left child and b as its right child
             a.setLeftChild(v);
             a.setRightChild(b);
+            //TODO semantic check on a before we return it this is for valid assignment operations semantic rules
             return a;
         }
         //we have consumed a <id> so now check for [ in NARRV <var> ::= <id> [ <expr> ] . <id>
@@ -875,6 +917,8 @@ public class SyntaxTree
         }
         //satisfy <asgnlist> rule
         alist = this.asgnlist();
+        //Semantic Check; valid assignment operations
+        this.checkAsgnOp(alist);
         //match & consume semi colon inbetween <asgnlist> & <bool>
         if(!this.match(Tokens.TSEMI))
         {
@@ -919,6 +963,8 @@ public class SyntaxTree
         }
         //satisfy <asgnlist> rule
         alist = this.asgnlist();
+        //Semantic Check; valid assignment operations
+        this.checkAsgnOp(alist);
         //match & consume right parenthses for )
         if(!this.match(Tokens.TRPAR))
         {
@@ -962,7 +1008,10 @@ public class SyntaxTree
             //capture node generated by <bool>
             bool = this.bool();
         }
+        //if its not TIDEN then we are gonna have an issue so error check here?
         stat = new STNode(NodeValue.NASGNS, var, a, bool);
+        //Semantic Check; valid assignment operations
+        this.checkAsgnOp(stat);
         //if we have a comma
         if(this.next.getTokenID() == Tokens.TCOMA)
         {
@@ -1194,7 +1243,16 @@ public class SyntaxTree
         STNode var, expr;
         SymbolEntry r = new SymbolEntry();
         r.setName(this.next.getLexeme());
-        r.setLineNo(this.next.getLineNo());
+        r.setLocation(this.next.getLineNo(), this.next.getColNo());
+        //SymbolTable lookup
+        if(!this.table.findGlobals(r))
+        {
+            String e = String.format("%s has not been declared", r.getName());
+            this.errorSemantic(e, r.getLocation());
+        }
+        //if it is in globals then we can just grab it from the symbol table
+        //TODO test not sure if I am calculating the correct key
+        r = this.table.getRecordGlobals(this.next.getLineNo() + this.next.getColNo());
         //Match & check for identifier token which is the start of the rule, <id>
         this.match(Tokens.TIDEN);
         //check for left bracket; <id> [
@@ -1216,8 +1274,7 @@ public class SyntaxTree
             return var;
         }
         //if we dont have the [ after <id> then we just have the NSIMV rule
-        var = new STNode(NodeValue.NSIMV);
-        var.setRecord(r);
+        var = new STNode(NodeValue.NSIMV, r);
         return var;
     }
 
@@ -1596,7 +1653,6 @@ public class SyntaxTree
                 if(this.next.getTokenID() == Tokens.TRPAR)
                 {
                     this.match(Tokens.TRPAR);
-                    //r.setName("()");
                     t.setRecord(r);
                     return t;
                 }
@@ -1606,7 +1662,7 @@ public class SyntaxTree
                 t.setRecord(r);
                 //Semantic Rules 6 & 7
                 //TODO finish implementation
-                this.checkFuncCall(t);
+                //this.checkFuncCall(t);
                 //make the node generated by <elist> the left child of a new node with node valu NFCALL
                 return t;
             }
@@ -1683,37 +1739,83 @@ public class SyntaxTree
     //Semantic Checks Methods
     //TODO documentation -> write the semantic rules
 
-    //private checkDeclaration(STNode)
-    //private checkStrongType(STNode)
-    //private checkFuncCall(STNode) recursive search/look at nodes from <elist>
-    //  count every node in elist -> match with number of parameters in function declaration
-    //  check type of every node in elist
-    private void checkFuncCall(STNode node)
+    //Semantically checks assignment operations to make sure they are valid
+    //we know that the left child is <var> and the right child is <bool>
+    private void checkAsgnOp(STNode node)
     {
-        //counter for the number of nodes we find
-        int count = 0;
-        //if the left child of the node which is should be the node generated by elist
-        if(node.getLeftChild() == null) return;
-        //capture the node generated by elist which should be the left child of the node passed in
-        STNode tempNode = node.getLeftChild();
-        //Access function defintion of the node passed in by using its reference to a SymbolEntry object
-        FuncTable temp = this.table.getCurrentScope(node.getRecord());
-        for(SymbolEntry s : temp.getParams())
+        //make sure that the left and right child do indeed exist
+        assert node.getLeftChild() != null && node.getRightChild() != null;
+        //capture the type of the left handside of the assignment operation
+        //since the left child of node is <var> need to look up in symbol table for its type
+        Tokens type = node.getLeftChild().getRecord().getType();
+        //Just a String for formatting a semantic error if the types do not match
+        String eType = "";
+        if (type == Tokens.TINTG) eType = "int";
+        else if (type == Tokens.TREAL) eType = "real";
+        else if (type == Tokens.TBOOL) eType = "bool";
+        //iterate over all the types of the right hand side of the assignment operation
+        for(SymbolEntry s : this.collectRecords(node.getRightChild(), new ArrayList<>()))
         {
-            //TODO helper function to recursively search through the nodes
-
-            if(tempNode.getLeftChild() != null)
+            if(s.getType() != type)
             {
-                count++;
-                if(tempNode.getRecord() != s)
-                {this.errorSemantic("Parameters do not match", tempNode.getRecord().getLocation());}
+                //semantic error formatting
+                String sType = "";
+                if (s.getType()  == Tokens.TINTG) sType = "int";
+                else if (s.getType()  == Tokens.TREAL) sType = "real";
+                else if (s.getType()  == Tokens.TBOOL) sType = "bool";
+                String e = String.format("Invalid assignment operation, types do not match, expected %s but found %s",sType ,eType);
+                this.errorSemantic(e, node.getLeftChild().getRecord().getLocation());
             }
         }
     }
 
+    //Semantically checks a function call matches its function defintion
+    //Preconditions:  fnCall != null and fnCall.getNodeValue == NodeValue.NFCALL
+    //Postconditions: Semantically checks the node passed in is semantically valid
+    private void checkFuncCall(STNode fnCall)
+    {
+        //Access function defintion of the node passed in by using its reference to a SymbolEntry object
+        FuncTable temp = this.table.getCurrentScope(fnCall.getName());
+        //Semantic Check; the function thats being called has actually been defined
+        if(!fnCall.getName().equals(temp.getName()))
+        {
+            //string for formatting error message
+            String e = String.format("The function %s has not been defined", fnCall.getName());
+            //send the string to the semantic error reporting function
+            this.errorSemantic(e, fnCall.getRecord().getLocation());
+        }
+        ArrayList<SymbolEntry> records = this.collectRecords(fnCall.getLeftChild(), new ArrayList<>());
+        //Semantic Check; parameters used in a function call must match the type of their respective formal parameter in the function definition
+        for(SymbolEntry s : temp.getParams())
+        {
+            for(SymbolEntry r : records)
+            {
+                if(s.getType() != r.getType())
+                {
+                    //string for formatting error message
+                    String e = String.format("Parameter type does not match, expected %s but found %s", s.getType(), r.getType());
+                    //send the string to the semantic error reporting function
+                    this.errorSemantic(e, r.getLocation());
+                }
+            }
+        }
+        //Semantic Check; number of parameters in a function call matches the number of parameters in the function definition
+        if(records.size() != temp.getParams().size())
+        {
+            String e = String.format("Number of parameters does not match, expected %d but found %d", temp.getParams().size(), records.size());
+            //use the location of the record of the node passed in because thats where the function call is
+            this.errorSemantic(e,fnCall.getRecord().getLocation());
+        }
+    }
+
+    //Semantically Checks that a function has a return statement
+    //Preconditions:  node != null
+    //Postconditions: Returns false if there is no return statements in the function at all, otherwise true
     private boolean checkFuncReturn(STNode node)
     {
-        //base cases; if we see a return statement then semantic check has passed i.e. no error
+        //base case; if the node is null then it doesn't have a NodeValue we can check
+        if(node == null) return false;
+        //base case; if we see a return statement then semantic check has passed i.e. no error
         if(node.getNodeValue() == NodeValue.NRETN) return true;
         //preorder traversal
         this.checkFuncReturn(node.getLeftChild());
@@ -1723,6 +1825,19 @@ public class SyntaxTree
         return false;
     }
 
+    //Helper function to collect SymbolEntry objects of the node passed in and its children
+    //Preconditions: node != null
+    //Postconditions: Returns an ArrayList of all the SymbolEntry objects of the node passed in and all its children
+    //                  preorder traversal is used to capture the objects of node's child nodes
+    private ArrayList<SymbolEntry> collectRecords(STNode node, ArrayList<SymbolEntry> list)
+    {
+        if(node == null) return list;
+        list.add(node.getRecord());
+        this.collectRecords(node.getLeftChild(), list);
+        this.collectRecords(node.getMiddleChild(), list);
+        this.collectRecords(node.getRightChild(), list);
+        return list;
+    }
 
     //Setters
 
