@@ -160,11 +160,11 @@ public class LexicalScanner
                     //reassign c
                     c = this.lookUp(count);
                     //update column number
-                    //this.colNo++;
+                    this.colNo++;
                 }
                 temp = Factory.identifierToken(lex, this.lineNo, this.colNo);
                 this.pos = count;
-                //this.colNo++;
+                this.colNo++;
                 break;
             }
             //Specific case if we have found the pattern digit dot digit
@@ -176,12 +176,12 @@ public class LexicalScanner
                 {
                     lex.append(c);
                     count++;
-                    //this.colNo++;
+                    this.colNo++;
                     c = this.lookUp(count);
                 }
                 temp = Factory.floatLiteral(lex, this.lineNo, this.colNo);
                 this.pos = count;
-                //this.colNo++;
+                this.colNo++;
                 break;
             }
             //Identifier and Keywords use case

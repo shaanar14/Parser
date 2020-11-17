@@ -59,6 +59,16 @@ public class FuncTable
         return this.body.get(key);
     }
 
+    public SymbolEntry findRecord(String name)
+    {
+        for(SymbolEntry n : this.body.values())
+        {
+            if(n.getName().equals(name)) return n;
+        }
+        //TODO change?
+        return null;
+    }
+
     //Setters
 
     //Preconditions:  FuncTable has been declared & intialized

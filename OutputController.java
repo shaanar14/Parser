@@ -54,6 +54,8 @@ public class OutputController
         this.totalSemanticErrors = 0;
     }
 
+    //Operational Methods
+
     //Preconditions:  LexicalScanner & OutputController object have been declared and initialized.
     //                  readFile() call from the LexicalScanner object to read the source file
     //                  setInput() with the LexicalScanner object getInput() call as its parameter to populate the OutputController objects input private member variable
@@ -218,6 +220,13 @@ public class OutputController
         this.totalSemanticErrors++;
         //add the string passed in to the StringBuilder object holding all semantic errors found
         this.semanticErrors.append(s);
+    }
+
+    //Preconditions:  OutputController has been declared & intialized
+    //Postconditions: Returns true if no lexical, syntax and semantic errors were found during compilation
+    public boolean errorFree()
+    {
+        return this.totalLexicalErrors == 0 && this.totalSyntaxErrors == 0 && this.totalSemanticErrors == 0;
     }
 
     //Setters

@@ -132,6 +132,19 @@ public class SymbolTable
         return this.scope.get(this.currentIndex).getInBody(key);
     }
 
+    public SymbolEntry findRecord(String name)
+    {
+        for(SymbolEntry g : this.globals.values())
+        {
+            if(g.getName().equals(name)) return g;
+        }
+        for(FuncTable f : this.scope)
+        {
+            return f.findRecord(name);
+        }
+        return null;
+    }
+
     //Setters
 
     //Preconditions:  SymbolTable has been declared and intialized
@@ -194,4 +207,50 @@ public class SymbolTable
     //Preconditions:  SymbolTable has been declared and intialized
     //Postconditions: Returns the index of the FuncTable object which is the current scope
     public int getCurrentIndex() {return this.currentIndex;}
+
+    @Override
+    public String toString()
+    {
+        StringBuilder output = new StringBuilder();
+        output.append(this.getProgramName().trim());
+        output.append('\n');
+        if(this.getGlobals().size() != 0)
+        {
+            for (SymbolEntry g : this.getGlobals().values())
+            {
+                output.append(g.toString());
+                output.append('\n');
+            }
+        }
+        if(this.getScope().size() != 0)
+        {
+            for(FuncTable f : this.getScope())
+            {
+                output.append('\n');
+                output.append(f.getName().trim());
+                output.append('\n');
+                if(f.getReturnType() != null)
+                {
+                    output.append(f.getReturnType());
+                    output.append('\n');
+                }
+                if(f.getParams().size() > 0)
+                {
+                    for(SymbolEntry p : f.getParams())
+                    {
+                        output.append(p);
+                        output.append(" ");
+                    }
+                }
+                output.append('\n');
+                System.out.printf("Body size for %s is %d\n", f.getName().trim(), f.getBody().size());
+                for(SymbolEntry b : f.getBody().values())
+                {
+                    output.append(b);
+                    output.append('\n');
+                }
+            }
+        }
+        return output.toString();
+    }
 }

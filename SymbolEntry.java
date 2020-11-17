@@ -40,6 +40,16 @@ public class SymbolEntry
         this.attributes = new ArrayList<>();
     }
 
+    //Operational Method
+
+    //Preconditions:  SymbolEntry has been declared & intialized
+    //Postconditions: Returns a number by adding the line number, the column number and the length of the name attribute
+    //                  This is used as the key for placing the SymbolEntry object into a SymbolTable object
+    public int  generateKey()
+    {
+        return this.getLineNo() + this.getColNo() + this.getName().length();
+    }
+
     //Setters
 
     //Preconditions:  SymbolEntry has been declared & intialized
@@ -118,4 +128,29 @@ public class SymbolEntry
     //Preconditions:  SymbolEntry has been declared & intialized
     //Postconditions: Returns the ArrayList of SymbolEntry objects represent the extra attributes for the current SymbolEntry object
     public ArrayList<SymbolEntry> getAttributes() {return this.attributes;}
+
+    @Override
+    public String toString()
+    {
+        StringBuilder output = new StringBuilder();
+        output.append(this.getName().trim());
+        if(this.getType() != null)
+        {
+            output.append(" : ");
+            output.append(this.getType());
+        }
+        if(this.getAttributes().size() != 0)
+        {
+            output.append(" | ");
+            for (SymbolEntry s : this.getAttributes())
+            {
+                if(s != null)
+                {
+                    output.append(s.getName().trim());
+                    output.append(" ");
+                }
+            }
+        }
+        return output.toString();
+    }
 }

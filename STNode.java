@@ -116,18 +116,22 @@ public class STNode
                 length = nv.length();
             }
         }
-        StringBuilder a = new StringBuilder(this.getName());
-        length = a.length();
-        if(length % 7 != 0)
+        StringBuilder a = new StringBuilder();
+        if(this.getRecord() != null)
         {
-            double n = length;
-            //ceiling function of the length of the lexeme divided by 6 and then times that value by 6
-            //e.g. if n = 13 then this will be rounded up ot 18 which is the next multiple of 6 characters
-            n = ((Math.ceil(n/7)) * 7);
-            while(length != n)
+            a.append(this.getName());
+            length = a.length();
+            if (length % 7 != 0)
             {
-                a.append(" ");
-                length = a.length();
+                double n = length;
+                //ceiling function of the length of the lexeme divided by 6 and then times that value by 6
+                //e.g. if n = 13 then this will be rounded up ot 18 which is the next multiple of 6 characters
+                n = ((Math.ceil(n / 7)) * 7);
+                while (length != n)
+                {
+                    a.append(" ");
+                    length = a.length();
+                }
             }
         }
         nv.append(a);

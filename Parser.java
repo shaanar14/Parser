@@ -18,6 +18,7 @@ public class Parser
         this.scanner = new LexicalScanner();
         this.tree = new SyntaxTree();
         this.symbolTable = new SymbolTable();
+        //code gen object
     }
 
     public void parseFile(String fileName)
@@ -37,5 +38,9 @@ public class Parser
         this.tree.getOutput().generateListingFile("listing.txt");
         //Update the symbol table of the parser after it has been used during AST generation
         this.symbolTable = this.tree.getTable();
+        System.out.println();
+        System.out.println(this.symbolTable);
+        //if(this.tree.getOutput().errorFree())
+        //code gen functions here
     }
 }
