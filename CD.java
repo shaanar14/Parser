@@ -7,7 +7,7 @@
     Output of these two objects is driven by an OutputController object
 */
 
-public class A2
+public class CD
 {
     public static void main(String[] args)
     {
